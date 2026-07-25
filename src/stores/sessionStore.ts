@@ -517,7 +517,7 @@ export const useSessionStore = create<SessionState>()(
 }),
 {
   name: 'kilocode-session',
-  /** 只持久化可恢复的状态，不持久化临时流式数据 */
+  /** 只持久化可恢复的状态；isStreaming 用于中断检测，恢复后重置 */
   partialize: (state) => ({
     sessions: state.sessions,
     activeSessionId: state.activeSessionId,
@@ -525,6 +525,8 @@ export const useSessionStore = create<SessionState>()(
     currentMode: state.currentMode,
     currentModel: state.currentModel,
     workingDir: state.workingDir,
+    // 持久化 isStreaming 以检测中断（merge 中会重置为 false）
+    isStreaming: state.isStreaming,
   }),
   /** 恢复后重置流式状态，避免残留；检测中断状态 */
   merge: (persistedState, currentState) => {

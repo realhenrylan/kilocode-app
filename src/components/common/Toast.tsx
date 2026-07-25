@@ -34,7 +34,7 @@ export function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 shadow-lg animate-in slide-in-from-right"
+            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 shadow-lg toast-enter"
             role="alert"
           >
             <Icon size={14} className={colorMap[toast.type]} />
