@@ -65,20 +65,20 @@ export function ToolCallCard({ toolCall }: { toolCall: KiloToolCall }) {
   const summary = getToolSummary(toolCall)
 
   return (
-    <div className="rounded-md border border-[var(--border-subtle] bg-[var(--bg-tertiary)] overflow-hidden">
+    <div className="my-2.5 overflow-hidden rounded-[10px] border border-[var(--border-subtle)] bg-[rgba(255,255,255,0.02)]">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-[var(--bg-hover)]"
+        className="flex w-full items-center gap-2 px-3 py-2 text-[12.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
       >
-        {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        <Icon size={12} className="text-[var(--accent)]" />
-        <span className="font-medium text-[var(--text-secondary)]">{label}</span>
-        {summary && <span className="text-[var(--text-tertiary)]">{summary}</span>}
-        <div className="flex-1" />
-        {statusIcon}
-        {toolCall.duration && (
-          <span className="text-[10px] text-[var(--text-tertiary)]">{toolCall.duration}ms</span>
-        )}
+        <span className="text-[var(--text-tertiary)]">{expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}</span>
+        <Icon size={12} />
+        <span className="font-mono text-[12px] text-[var(--text-primary)]">{summary || label}</span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="text-[11.5px] text-[var(--text-tertiary)]">{statusIcon}</span>
+          {toolCall.duration && (
+            <span className="text-[11.5px] text-[var(--text-tertiary)]">{toolCall.duration}ms</span>
+          )}
+        </div>
       </button>
 
       {expanded && (

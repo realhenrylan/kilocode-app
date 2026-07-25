@@ -40,14 +40,14 @@ export function AssistantMessage({
       {onFork && messageId && !isStreaming && (
         <button
           onClick={() => onFork(messageId)}
-          className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-tertiary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--brand-primary)] group-hover:opacity-100"
+          className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-tertiary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] group-hover:opacity-100"
           aria-label="从此消息分叉"
           title="从此消息分叉会话"
         >
           <GitBranch size={14} />
         </button>
       )}
-      <div className="max-w-[90%] space-y-2">
+      <div className="max-w-[90%] space-y-2 text-[13px] leading-[1.7] text-[var(--text-primary)]">
         {/* 工具调用展示 */}
         {toolCalls && toolCalls.length > 0 && (
           <div className="space-y-1">
@@ -59,7 +59,7 @@ export function AssistantMessage({
 
         {/* Markdown 内容 */}
         {content && (
-          <div className="prose-invert text-sm text-[var(--text-primary)]">
+          <div className="prose-invert">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -106,13 +106,13 @@ export function AssistantMessage({
           </div>
         )}
 
-        {/* Token 用量元数据 */}
+        {/* Token 用量元数据 — 中性色，去品牌黄 */}
         {!isStreaming && tokenUsage && (
-          <div className="flex items-center gap-3 text-[10px] text-[var(--text-tertiary)]">
+          <div className="flex items-center gap-3 text-[11.5px] text-[var(--text-tertiary)]">
             <span>↑ {tokenUsage.inputTokens?.toLocaleString() ?? tokenUsage.input?.toLocaleString() ?? '—'}</span>
             <span>↓ {tokenUsage.outputTokens?.toLocaleString() ?? tokenUsage.output?.toLocaleString() ?? '—'}</span>
             {tokenUsage.cost != null && tokenUsage.cost > 0 && (
-              <span className="text-[var(--brand-primary)]">
+              <span>
                 ${tokenUsage.cost < 0.001 ? tokenUsage.cost.toFixed(6) : tokenUsage.cost < 0.01 ? tokenUsage.cost.toFixed(4) : tokenUsage.cost.toFixed(2)}
               </span>
             )}

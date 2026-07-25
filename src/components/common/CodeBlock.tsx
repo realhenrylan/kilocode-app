@@ -18,15 +18,15 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
   }
 
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-[var(--code-border)]">
+    <div className="my-2.5 overflow-hidden rounded-[10px] border border-[var(--border-subtle)]">
       {/* 头部：语言标签 + 复制按钮 */}
-      <div className="flex items-center justify-between bg-[var(--code-bg)] px-3 py-1">
-        <span className="text-[10px] font-medium text-[var(--text-tertiary)]">
+      <div className="flex items-center border-b border-[var(--border-subtle)] bg-[var(--code-bg)] px-3 py-1.5">
+        <span className="font-mono text-[11.5px] text-[var(--text-tertiary)]">
           {language || 'text'}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 rounded text-[10px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+          className="ml-auto flex items-center gap-1 rounded text-[11.5px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
         >
           {copied ? (
             <>
@@ -43,8 +43,8 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
       </div>
 
       {/* 代码内容 */}
-      <pre className="overflow-x-auto bg-[var(--code-bg)] p-3 text-xs leading-relaxed">
-        <code className="text-[var(--text-primary)]">{code}</code>
+      <pre className="overflow-x-auto bg-[var(--code-bg)] px-3.5 py-3 text-[12px] leading-[1.7] text-[#C8C6BE]">
+        <code>{code}</code>
       </pre>
     </div>
   )

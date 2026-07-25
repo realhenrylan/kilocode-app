@@ -4,7 +4,58 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+### Style — 像素级对齐设计稿 V2.3
+- TitleBar: 窗口按钮改为设计稿风格（stroke SVG），移除左侧 Logo 文字，高度 38px
+- ChatPanel: 对话列改为 max-width 720px 居中（justify-center），消息间距 22px，padding 28/24/12
+- UserMessage: 气泡圆角改为 16px（右下 6px），添加 hairline 边框，字体 13px，行高 1.7
+- AssistantMessage: 字体统一 13px，行高 1.7，token 用量去品牌黄（改为中性色）
+- MainPanel: 新增顶部面包屑工具栏（46px，底部发丝线），显示当前会话标题
+- ToolCallCard: 圆角改为 10px，背景改为 rgba(255,255,255,0.02)，hairline 边框，字号对齐设计稿
+- EmptyState: 快捷操作按钮 hover 去品牌黄，改为中性边框 hover
+- StreamingIndicator: 去独立边框，改为在消息列内显示（max-width 720px 对齐）
+- Composer: padding 精度调整为 px-3.5 pt-3.5 pb-2.5
+- CodeBlock: 圆角 10px，hairline 边框，代码色 #C8C6BE，行高 1.7，头部带分隔线
+- **品牌黄全面清理**: 下拉菜单激活态、附件图标、分叉按钮 hover、命令文本等全部去品牌黄
+- 品牌黄铁律：仅保留 3 处签名 — Logo、发送按钮、shimmer 扫光
+
 ## [0.8.0-dev] - 2026-07-25
+
+### Style — Codex 暖炭灰重设计（第1步：换底色+分隔线）
+- 替换深色主题为 Codex 暖炭灰底色体系（#1B1A18），靠明度差分区而非描边
+- 替换浅色主题为暖纸白体系（#FAF9F6），品牌黄加深为 #B8860B 保证对比度
+- 移除 Cyan accent，链接改用中性色 + 下划线
+- 品牌黄收敛为 3 处签名：Logo、发送按钮、shimmer 扫光
+- 新增 --divider 发丝线变量（0.10），区域分隔更清晰
+- 发丝线两档：--border-subtle(0.07) 组件级 / --border(0.12) Composer 强调
+- 侧边栏激活态去黄，改为中性灰 rgba(255,255,255,0.07)
+- 用户消息背景去黄，改为中性灰 #2A2926
+- 新建会话按钮去虚线，改为实底 + hairline 边框
+- 标题栏融入主背景，底部发丝线分隔
+- 成功/错误色改为低饱和 #7DBB6E / #E5716A
+
+### Style — Codex Composer 改版（第2步）
+- Composer 改为浮起大圆角卡（radius 18px + 常驻投影 + --border 描边）
+- 输入区与控件区用 --border-hairline 发丝线分隔
+- 模式/模型选择器从 Sidebar 迁入 Composer 底部胶囊（radius 999px + 1px 描边）
+- 发送按钮改为圆形：空闲态灰色 → 有内容品牌黄 + 柔光
+- 从 Sidebar 移除 ModeSelector 和 ModelSelector 组件
+- Composer 提示行显示费用/token 信息
+- MainPanel 移除 Composer 外层容器边框（Composer 自带边框和投影）
+
+### Style — Codex 侧边栏瘦身（第3步）
+- 会话列表按日期分组：今天 / 昨天 / 过去7天 / 更早
+- 侧边栏顶部加搜索框，支持前端过滤会话
+- 侧边栏宽度从 240px 调整为 256px
+- Logo 换为 KiloCode 官方 logo（亮黄 #F7F569 圆角方块 + 像素风 K）
+- 新建任务按钮图标换为 Plus，文案改为"新建任务"
+- 会话条目圆角改为 8px，字号 12.5px
+
+### Style — Codex 右面板改抽屉（第4步）
+- RightPanel 改为 440px 工作抽屉，按需唤出 + 滑入动画
+- Tab 行换为分段控件（segmented control），去品牌黄高亮
+- 抽屉背景色 #1F1E1B（比主背景亮一档），左侧 --divider 发丝线
+- 删除 StatusBar 组件，费用/token 信息已在 Composer 提示行显示
+- 连接状态/模式/模型信息通过 Composer 胶囊和侧边栏底部展示
 
 ### Added
 - **会话分叉 UI（Session Fork UI）**：
@@ -15,12 +66,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Toast 通知系统**：
   - `toastStore`：Zustand store 管理通知队列，最多 3 条，自动消失（默认 3 秒）
   - `ToastContainer` 组件：固定右上角，支持 info/success/warning/error 四种类型
-  - 手动关闭按钮 + 自动消失动画
+  - 手动关闭按钮 + 自动消失动画（自定义 CSS @keyframes toast-in/toast-out）
 - **自动恢复完善（Auto-Recovery Completion）**：
   - `wasInterrupted` 标记：persist merge 检测上次 isStreaming=true，标记中断
   - App mount 检查 wasInterrupted，显示 Toast「上次会话中断，已恢复到最近状态」
   - `resumeSession` action：连接恢复后自动调用 kiloApi.resumeSession 恢复服务端会话
   - useKiloConnection 首次连接成功后自动 resume 活跃会话
+  - partialize 包含 isStreaming 以支持中断检测
+- **Electron 桌面运行时验证与修复**：
+  - 修复 ESM `__dirname` 不可用：添加 `fileURLToPath(import.meta.url)` 兼容
+  - 修复 preload 路径：从 `../preload/index.js` 改为 `preload.js`（匹配 vite-plugin-electron 输出）
+  - 修复 KiloProcess CLI 启动失败：优雅降级到 mock 模式而非 reject
+  - 修复窗口关闭逻辑：添加 `isQuitting` 标志，tray 不存在时正常退出
+  - 修复 dev server URL 传递：支持 `VITE_DEV_SERVER_URL` + `ELECTRON_RENDERER_URL` + fallback
+  - 新增 `scripts/electron-dev.mjs`：可靠的 Electron 开发启动器，显式传递 dev server URL
+  - 设置 `ELECTRON_STARTUP_PREVENT` 阻止 vite-plugin-electron 自动启动（避免重复窗口）
+  - 7 项桌面运行时验证全部通过（窗口显示/标题栏/托盘/CLI降级/主题/尺寸/快捷键）
+
+### Changed
+- `electron:dev` 脚本从 `vite` 改为 `node scripts/electron-dev.mjs`（解决 Windows 环境变量传递问题）
 
 ## [0.7.0] - 2026-07-24
 
