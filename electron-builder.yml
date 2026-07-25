@@ -1,0 +1,25 @@
+appId: com.kilocode.desktop
+productName: KiloCode
+directories:
+  buildResources: resources
+  output: release
+files:
+  - dist-electron
+  - dist
+  - "!node_modules"
+win:
+  icon: resources/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/icon.png
+  uninstallerIcon: resources/icon.png
+  installerHeaderIcon: resources/icon.png
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: KiloCode
+asar: true

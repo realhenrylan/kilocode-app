@@ -1,0 +1,275 @@
+/* ============================================================
+ * KiloCode Desktop - 全局样式与双主题色彩系统
+ *
+ * 设计原则：
+ * - Dark-first，默认深色主题
+ * - KiloCode品牌黄(#FFD700)为品牌标识色
+ * - Cyan(#00bcd4)为交互反馈色（保留Codex风格）
+ * - CSS变量驱动，data-theme属性切换
+ * - 支持三种模式：Dark / Light / System
+ * ============================================================ */
+
+@import "tailwindcss";
+
+/* ===== Dark Theme（默认）===== */
+:root,
+:root[data-theme="dark"] {
+  /* 基础背景 */
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #242424;
+  --bg-hover: #2a2a2a;
+  --bg-active: #333333;
+
+  /* 文本 */
+  --text-primary: #e8e8e8;
+  --text-secondary: #999999;
+  --text-tertiary: #666666;
+  --text-inverse: #0d0d0d;
+
+  /* KiloCode品牌色 - 黄色系 */
+  --brand-primary: #FFD700;
+  --brand-hover: #FFE44D;
+  --brand-muted: rgba(255, 215, 0, 0.15);
+  --brand-subtle: rgba(255, 215, 0, 0.08);
+
+  /* 功能色 */
+  --accent: #00bcd4;
+  --accent-hover: #00d4f0;
+  --accent-muted: rgba(0, 188, 212, 0.15);
+  --success: #4caf50;
+  --success-muted: rgba(76, 175, 80, 0.15);
+  --error: #ef5350;
+  --error-muted: rgba(239, 83, 80, 0.15);
+  --warning: #ff9800;
+  --warning-muted: rgba(255, 152, 0, 0.15);
+
+  /* Diff */
+  --diff-add-bg: #1a3a2e;
+  --diff-del-bg: #3a1a1d;
+  --diff-add-text: #7ee8a0;
+  --diff-del-text: #f87171;
+  --diff-add-gutter: #2d5a3e;
+  --diff-del-gutter: #5a2d30;
+
+  /* 边框与分割 */
+  --border: #333333;
+  --border-subtle: #262626;
+  --divider: rgba(255, 255, 255, 0.08);
+
+  /* 特殊 */
+  --user-msg-bg: rgba(255, 215, 0, 0.06);
+  --assistant-msg-bg: transparent;
+  --code-bg: #1e1e1e;
+  --code-border: #333333;
+  --scrollbar-thumb: #444444;
+  --scrollbar-track: transparent;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* 输入框 */
+  --input-bg: #1a1a1a;
+  --input-border: #333333;
+  --input-focus-border: var(--brand-primary);
+
+  /* 侧边栏 */
+  --sidebar-bg: #141414;
+  --sidebar-item-hover: rgba(255, 215, 0, 0.06);
+  --sidebar-item-active: rgba(255, 215, 0, 0.12);
+  --sidebar-item-active-text: var(--brand-primary);
+}
+
+/* ===== Light Theme ===== */
+:root[data-theme="light"] {
+  /* 基础背景 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #eeeeee;
+  --bg-hover: #e8e8e8;
+  --bg-active: #dddddd;
+
+  /* 文本 */
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-inverse: #ffffff;
+
+  /* KiloCode品牌色 - 黄色系（Light模式加深保证对比度）*/
+  --brand-primary: #E6B800;
+  --brand-hover: #CC9E00;
+  --brand-muted: rgba(230, 184, 0, 0.12);
+  --brand-subtle: rgba(230, 184, 0, 0.06);
+
+  /* 功能色 */
+  --accent: #0097a7;
+  --accent-hover: #00838f;
+  --accent-muted: rgba(0, 151, 167, 0.12);
+  --success: #388e3c;
+  --success-muted: rgba(56, 142, 60, 0.12);
+  --error: #d32f2f;
+  --error-muted: rgba(211, 47, 47, 0.12);
+  --warning: #f57c00;
+  --warning-muted: rgba(245, 124, 0, 0.12);
+
+  /* Diff */
+  --diff-add-bg: #e8f5e9;
+  --diff-del-bg: #ffebee;
+  --diff-add-text: #1b5e20;
+  --diff-del-text: #b71c1c;
+  --diff-add-gutter: #c8e6c9;
+  --diff-del-gutter: #ffcdd2;
+
+  /* 边框与分割 */
+  --border: #e0e0e0;
+  --border-subtle: #eeeeee;
+  --divider: rgba(0, 0, 0, 0.08);
+
+  /* 特殊 */
+  --user-msg-bg: rgba(230, 184, 0, 0.08);
+  --assistant-msg-bg: transparent;
+  --code-bg: #f5f5f5;
+  --code-border: #e0e0e0;
+  --scrollbar-thumb: #cccccc;
+  --scrollbar-track: transparent;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --overlay: rgba(0, 0, 0, 0.3);
+
+  /* 输入框 */
+  --input-bg: #ffffff;
+  --input-border: #e0e0e0;
+  --input-focus-border: var(--brand-primary);
+
+  /* 侧边栏 */
+  --sidebar-bg: #f0f0f0;
+  --sidebar-item-hover: rgba(230, 184, 0, 0.08);
+  --sidebar-item-active: rgba(230, 184, 0, 0.15);
+  --sidebar-item-active-text: var(--brand-primary);
+}
+
+/* ===== 全局基础样式 ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ===== 选中样式 ===== */
+::selection {
+  background: var(--brand-muted);
+  color: var(--text-primary);
+}
+
+/* ===== 链接 ===== */
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ===== 代码 ===== */
+code {
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+/* ===== 过渡动画 ===== */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+}
+
+/* ===== Shimmer 动画（Codex风格流式输出指示器）===== */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--text-secondary) 0%,
+    var(--brand-primary) 50%,
+    var(--text-secondary) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ===== 脉冲动画（状态指示器）===== */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* ===== 旋转动画（加载指示器）===== */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ===== 拖拽区域（自定义标题栏）===== */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
