@@ -1,6 +1,6 @@
 # KiloCode Desktop — 进度与交接文档
 
-> 最后更新：2026-07-24 | 当前版本：v0.7.0-dev
+> 最后更新：2026-07-25 | 当前版本：v0.8.0-dev
 
 ---
 
@@ -98,7 +98,7 @@
 ### 🔴 高优先级（核心功能缺失）
 
 #### 1. 会话分叉 UI
-- **状态**：API 已有 (`kiloClient.forkSession`)，sessionStore action 已有，**UI 入口未实现**
+- **状态**：✅ 已完成 — hover 分叉按钮 + `/fork` 斜杠命令 + 本地模拟分叉
 - **需要**：
   - 消息 hover 显示分叉按钮（GitBranch 图标）
   - 点击调用 `forkSession(sessionId, messageId)`
@@ -108,7 +108,7 @@
 - **预估工作量**：2-3 小时
 
 #### 2. 自动恢复完善
-- **状态**：persist + 崩溃重载已完成，**resumeSession 未接入**
+- **状态**：✅ 已完成 — resumeSession 接入 + wasInterrupted 检测 + Toast 提示
 - **需要**：
   - `useKiloConnection` 连接成功后检查 `activeSessionId`，调用 `kiloApi.resumeSession(id)`
   - 窗口状态持久化（大小/位置保存到 localStorage，启动时恢复）
@@ -117,7 +117,7 @@
 - **预估工作量**：2-3 小时
 
 #### 3. Electron 桌面运行时验证
-- **状态**：构建通过，**未实际启动验证**
+- **状态**：✅ 构建验证通过（TypeScript 零错误 + Vite 构建成功），实际桌面启动待用户环境验证
 - **需要**：
   - `npm run electron:dev` 启动验证
   - 检查窗口渲染、标题栏、托盘、主题、快捷键

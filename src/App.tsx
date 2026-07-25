@@ -1,10 +1,13 @@
 import { AppShell } from '@/components/layout/AppShell'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
+import { ToastContainer } from '@/components/common/Toast'
 import { useTheme } from '@/hooks/useTheme'
 import { useKiloConnection } from '@/hooks/useKiloConnection'
 import { useConfigStore } from '@/stores/configStore'
 import { useMemoryStore } from '@/stores/memoryStore'
 import { useRulesStore } from '@/stores/rulesStore'
+import { useSessionStore } from '@/stores/sessionStore'
+import { useToastStore } from '@/stores/toastStore'
 import { useEffect } from 'react'
 
 /**
@@ -36,10 +39,23 @@ function App() {
     if (!rulesLoaded) loadRules()
   }, [])
 
+  // 检测上次会话中断，显示恢复提示
+  useEffect(() => {
+    const { wasInterrupted, setWasInterrupted } = useSessionStore.getState()
+    if (wasInterrupted) {
+      useToastStore.getState().addToast({
+        type: 'info',
+        message: '上次会话中断，已恢复到最近状态',
+      })
+      setWasInterrupted(false)
+    }
+  }, [])
+
   return (
     <>
       <AppShell />
       <SettingsPanel />
+      <ToastContainer />
     </>
   )
 }

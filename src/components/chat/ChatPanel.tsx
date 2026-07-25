@@ -1,19 +1,26 @@
 import { useSessionStore } from '@/stores/sessionStore'
 import { UserMessage } from './UserMessage'
 import { AssistantMessage } from './AssistantMessage'
-import { ToolCallCard } from './ToolCallCard'
 import { MessageSquare } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 
 /**
  * 对话面板
  *
  * 显示消息流：用户消息 + AI回复 + 工具调用
  * Codex风格：消息流式展示，自动滚动到底部
+ * 支持从任意消息分叉会话
  */
 export function ChatPanel() {
-  const { messages, isStreaming, streamingContent } = useSessionStore()
+  const { messages, isStreaming, streamingContent, activeSessionId, forkSession } = useSessionStore()
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  /** 分叉会话回调 */
+  const handleFork = useCallback((messageId: string) => {
+    if (activeSessionId) {
+      forkSession(activeSessionId, messageId)
+    }
+  }, [activeSessionId, forkSession])
 
   // 自动滚动到底部
   useEffect(() => {
@@ -33,12 +40,14 @@ export function ChatPanel() {
         {messages.map((message) => (
           <div key={message.id}>
             {message.role === 'user' ? (
-              <UserMessage message={message} />
+              <UserMessage message={message} onFork={handleFork} />
             ) : (
               <AssistantMessage
                 content={message.content}
                 toolCalls={message.toolCalls}
                 message={message}
+                messageId={message.id}
+                onFork={handleFork}
               />
             )}
           </div>

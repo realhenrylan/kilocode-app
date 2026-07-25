@@ -215,6 +215,18 @@ export function Composer() {
       return
     }
 
+    // /fork 命令：分叉当前会话
+    if (command === '/fork') {
+      const { activeSessionId, forkSession } = useSessionStore.getState()
+      if (activeSessionId) {
+        forkSession(activeSessionId)
+      }
+      setValue('')
+      setShowSlashCommands(false)
+      textareaRef.current?.focus()
+      return
+    }
+
     // 其他命令作为消息发送
     setValue(command + ' ')
     setShowSlashCommands(false)

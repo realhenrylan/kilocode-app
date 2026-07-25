@@ -1,4 +1,4 @@
-import { FileText, Image } from 'lucide-react'
+import { FileText, Image, GitBranch } from 'lucide-react'
 import type { KiloMessage, FileAttachment } from '@/types/kilo'
 
 /**
@@ -6,8 +6,9 @@ import type { KiloMessage, FileAttachment } from '@/types/kilo'
  *
  * Codex风格：带品牌黄调背景的气泡，右对齐
  * 支持展示文件附件标签
+ * Hover 时显示分叉按钮，支持从此消息分叉会话
  */
-export function UserMessage({ message }: { message: KiloMessage }) {
+export function UserMessage({ message, onFork }: { message: KiloMessage; onFork?: (messageId: string) => void }) {
   const { content, attachments } = message
 
   /** 判断附件是否为图片 */
@@ -21,7 +22,18 @@ export function UserMessage({ message }: { message: KiloMessage }) {
   }
 
   return (
-    <div className="flex justify-end">
+    <div className="group relative flex justify-end">
+      {/* Hover 分叉按钮 */}
+      {onFork && (
+        <button
+          onClick={() => onFork(message.id)}
+          className="absolute -left-1 -top-1 flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-tertiary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--brand-primary)] group-hover:opacity-100"
+          aria-label="从此消息分叉"
+          title="从此消息分叉会话"
+        >
+          <GitBranch size={14} />
+        </button>
+      )}
       <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-[var(--user-msg-bg)] px-4 py-2.5">
         {/* 附件标签 */}
         {attachments && attachments.length > 0 && (

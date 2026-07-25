@@ -1,7 +1,7 @@
 {
   "name": "kilocode-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.8.0-dev",
   "description": "KiloCode Windows Desktop Application - AI Coding Agent",
   "type": "module",
   "main": "dist-electron/main/index.js",

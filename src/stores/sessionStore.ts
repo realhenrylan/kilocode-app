@@ -36,6 +36,8 @@ interface SessionState {
   workingDir: string
   /** 流式消息的 ID（用于更新最终消息） */
   streamingMessageId: string | null
+  /** 上次会话是否被中断（用于恢复提示） */
+  wasInterrupted: boolean
 
   // Actions
   setSessions: (sessions: KiloSession[]) => void
@@ -76,6 +78,10 @@ interface SessionState {
   changeMode: (mode: AgentMode) => Promise<void>
   /** 切换模型（同时通知 API） */
   changeModel: (model: string) => Promise<void>
+  /** 重置中断标记 */
+  setWasInterrupted: (value: boolean) => void
+  /** 恢复会话（连接恢复后调用，通知服务端恢复上下文） */
+  resumeSession: (id: string) => Promise<void>
 }
 
 const initialState = {
@@ -89,6 +95,7 @@ const initialState = {
   currentModel: 'claude-sonnet-4-20250514',
   workingDir: '',
   streamingMessageId: null as string | null,
+  wasInterrupted: false,
 }
 
 export const useSessionStore = create<SessionState>()(
@@ -416,17 +423,55 @@ export const useSessionStore = create<SessionState>()(
 
   /** 分叉会话 */
   forkSession: async (id: string, fromMessageId?: string) => {
-    try {
-      const newSession = await kiloApi.forkSession(id, fromMessageId)
+    const connected = useConnectionStore.getState().connected
+
+    if (connected) {
+      try {
+        const newSession = await kiloApi.forkSession(id, fromMessageId)
+        set((s) => ({
+          sessions: [newSession, ...s.sessions],
+          activeSessionId: newSession.id,
+        }))
+        // 加载新会话的消息
+        const messages = await kiloApi.listMessages(newSession.id)
+        set({ messages })
+      } catch (err) {
+        console.error('[forkSession] Failed:', err)
+      }
+    } else {
+      // 未连接 CLI 时：本地模拟分叉
+      const state = get()
+      const sourceSession = state.sessions.find((s) => s.id === id)
+      if (!sourceSession) return
+
+      // 复制消息到分叉点
+      const forkIndex = fromMessageId
+        ? state.messages.findIndex((m) => m.id === fromMessageId)
+        : state.messages.length
+      const forkMessages = forkIndex >= 0
+        ? state.messages.slice(0, forkIndex + 1)
+        : [...state.messages]
+
+      const newSession: KiloSession = {
+        id: `local-fork-${Date.now()}`,
+        title: `${sourceSession.title} (分叉)`,
+        mode: sourceSession.mode,
+        model: sourceSession.model,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        workingDir: sourceSession.workingDir,
+        messageCount: forkMessages.length,
+      }
+
       set((s) => ({
         sessions: [newSession, ...s.sessions],
         activeSessionId: newSession.id,
+        messages: forkMessages.map((m) => ({ ...m, sessionId: newSession.id })),
+        streamingContent: '',
+        isStreaming: false,
+        activeToolCalls: [],
       }))
-      // 加载新会话的消息
-      const messages = await kiloApi.listMessages(newSession.id)
-      set({ messages })
-    } catch (err) {
-      console.error('[forkSession] Failed:', err)
     }
   },
 
@@ -455,6 +500,20 @@ export const useSessionStore = create<SessionState>()(
       }
     }
   },
+
+  setWasInterrupted: (value) => set({ wasInterrupted: value }),
+
+  /** 恢复会话（连接恢复后调用，通知服务端恢复上下文） */
+  resumeSession: async (id: string) => {
+    try {
+      await kiloApi.resumeSession(id)
+      // 恢复成功后重新加载消息
+      const messages = await kiloApi.listMessages(id)
+      set({ messages })
+    } catch (err) {
+      console.warn('[resumeSession] Failed, local persist data still available:', err)
+    }
+  },
 }),
 {
   name: 'kilocode-session',
@@ -467,16 +526,23 @@ export const useSessionStore = create<SessionState>()(
     currentModel: state.currentModel,
     workingDir: state.workingDir,
   }),
-  /** 恢复后重置流式状态，避免残留 */
-  merge: (persistedState, currentState) => ({
-    ...currentState,
-    ...(persistedState as Partial<SessionState>),
-    // 流式状态始终重置为初始值
-    streamingContent: '',
-    isStreaming: false,
-    activeToolCalls: [],
-    streamingMessageId: null,
-  }),
+  /** 恢复后重置流式状态，避免残留；检测中断状态 */
+  merge: (persistedState, currentState) => {
+    const persisted = persistedState as Partial<SessionState>
+    // 检测中断：如果持久化的 isStreaming 为 true，说明上次会话被中断
+    const wasInterrupted = !!(persisted as any).isStreaming
+    return {
+      ...currentState,
+      ...persisted,
+      // 流式状态始终重置为初始值
+      streamingContent: '',
+      isStreaming: false,
+      activeToolCalls: [],
+      streamingMessageId: null,
+      // 中断检测
+      wasInterrupted: wasInterrupted || currentState.wasInterrupted,
+    }
+  },
 }
   )
 )

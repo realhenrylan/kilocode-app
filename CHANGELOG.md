@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0-dev] - 2026-07-25
+
+### Added
+- **会话分叉 UI（Session Fork UI）**：
+  - 消息 hover 显示 GitBranch 分叉按钮（AssistantMessage + UserMessage），点击从此消息分叉会话
+  - ChatPanel 传递 messageId + onFork 回调给消息组件
+  - `/fork` 斜杠命令绑定：从最后一条消息分叉当前会话
+  - 本地模拟分叉：未连接 CLI 时支持本地分叉（复制消息到新会话，标题添加"(分叉)"后缀）
+- **Toast 通知系统**：
+  - `toastStore`：Zustand store 管理通知队列，最多 3 条，自动消失（默认 3 秒）
+  - `ToastContainer` 组件：固定右上角，支持 info/success/warning/error 四种类型
+  - 手动关闭按钮 + 自动消失动画
+- **自动恢复完善（Auto-Recovery Completion）**：
+  - `wasInterrupted` 标记：persist merge 检测上次 isStreaming=true，标记中断
+  - App mount 检查 wasInterrupted，显示 Toast「上次会话中断，已恢复到最近状态」
+  - `resumeSession` action：连接恢复后自动调用 kiloApi.resumeSession 恢复服务端会话
+  - useKiloConnection 首次连接成功后自动 resume 活跃会话
+
 ## [0.7.0] - 2026-07-24
 
 ### Added
