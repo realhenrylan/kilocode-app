@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0-dev.1] - 2026-07-26
+
 ### Fix — 修复 Windows 系统托盘图标缺失
 - 托盘图标改为优先加载 PNG，避免 Windows 对 SVG 托盘图标支持不稳定
 - 将托盘图标作为运行时资源打入安装包，兼容开发环境与生产环境路径

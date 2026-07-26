@@ -1,137 +1,206 @@
 # KiloCode Desktop
 
-KiloCode Windows 桌面端应用程序 — AI 驱动的编程助手。
+**Windows-first desktop workspace for AI-assisted software development.**
 
-> 📋 完整规格见 [SPEC.md](./SPEC.md)，进度与交接见 [PROGRESS.md](./PROGRESS.md)，变更日志见 [CHANGELOG.md](./CHANGELOG.md)
+[中文](#中文) · [English](#english)
 
-## 特性
+> **Developer Preview · v0.8.0-dev.1**
+>
+> KiloCode Desktop is an Electron application that brings KiloCode's agent workflow into a focused desktop workspace. It combines chat, model configuration, project context, terminal access, browser control, diffs, MCP tools, permissions, and system-level desktop integration in one application.
 
-- 🤖 **全功能 KiloCode** — 包含 KiloCode 所有核心功能
-- 🎨 **Codex 风格 UI** — 前端设计完全参考 OpenAI Codex 桌面端
-- 🌙 **三主题支持** — 深色/浅色/跟随系统三种主题模式
-- 💛 **KiloCode 品牌黄** — 融入 KiloCode 专属品牌色 (#FFD700)
-- ⚡ **5+ Agent 模式** — Code / Plan / Ask / Debug / Review + 自定义模式
-- 🧠 **629 模型支持** — 22 个提供商，分组搜索，特性标识
-- 💬 **流式对话** — SSE 流式 AI 回复，Markdown 渲染 + 代码高亮
-- 💻 **集成终端** — @xterm/xterm 终端面板
-- 📝 **Diff 查看** — 统一 Diff 视图 + Shiki 语法高亮
-- 🌐 **浏览器控制** — 导航/截图/交互/无障碍树/JS 控制台
-- 🔌 **MCP 管理** — MCP 服务器 CRUD + 启用/禁用
-- 🔐 **权限控制** — 默认策略 + 逐工具权限 + 实时弹窗
-- 📂 **文件浏览** — 项目文件树浏览器
-- 🧠 **记忆库** — AI 记忆条目 CRUD + 搜索 + 分类
-- 📊 **Token 追踪** — 实时用量/费用显示，历史累计持久化
-- 📎 **文件上传** — 拖拽/点击附件，MIME 推断，Base64 编码
-- ✨ **内联补全** — Ghost text 提示，Tab 接受/Esc 取消
-- 🎤 **语音输入** — Web Speech API 语音识别
-- ⚙️ **自定义模式** — 创建专属 Agent 模式（系统提示词+工具+图标）
-- 📜 **规则系统** — 全局/项目/工作区规则管理，Markdown 编辑
-- 🔄 **自动恢复** — 状态持久化 + 崩溃自动重载
-- 🛡️ **系统托盘** — 最小化到托盘，托盘菜单
-- 🔄 **自动更新** — electron-updater 集成
+![KiloCode Desktop model configuration](./screen.png)
 
-## 技术栈
+## 中文
 
-| 层级 | 技术 |
-|------|------|
-| 桌面框架 | Electron 33+ |
-| 前端框架 | React 19 + TypeScript |
-| UI 组件 | Radix UI + Tailwind CSS v4 |
-| 状态管理 | Zustand (含 persist 中间件) |
-| 代码高亮 | Shiki |
-| 终端 | @xterm/xterm |
-| 构建工具 | Vite 8 + electron-builder |
-| 后端通信 | HTTP REST + SSE (KiloCode CLI) |
+### 项目简介
 
-## 开发
+KiloCode Desktop 是面向 Windows 的 AI 编程工作台。它以 Electron 为桌面容器，以 React + TypeScript 构建界面，并通过 KiloCode CLI 提供 AI Agent 的运行能力。
 
-### 前置要求
+项目目前处于开发预览阶段，适合体验界面、验证桌面交互和参与功能开发。完整 AI 能力需要连接可用的 KiloCode CLI 或后端服务；未连接时，应用会进入模拟模式，用于浏览和演示主要界面。
 
-- Node.js 18+
-- npm 9+
-- KiloCode CLI（可选，未安装时以模拟模式运行）
+### 核心能力
 
-### 安装依赖
+- **Agent 工作流**：Code、Plan、Ask、Debug、Review 五种内置模式，以及自定义模式
+- **模型与提供商管理**：模型目录、默认模型、API 配置、自定义端点和本地模型入口
+- **流式对话**：Markdown 渲染、代码高亮、工具调用展示、会话管理和会话分叉
+- **开发工具集成**：集成终端、文件树、Diff 查看器和项目/工作区上下文
+- **浏览器控制**：页面导航、截图、交互操作、无障碍树和 JavaScript 控制台
+- **MCP 与权限**：MCP 服务器管理、启用/禁用控制、默认策略和逐工具权限确认
+- **工程辅助**：规则系统、记忆库、Token 用量统计、文件上传、内联补全和语音输入
+- **桌面体验**：深色/浅色/跟随系统主题、系统托盘、快捷键、状态持久化和崩溃恢复
+
+### 界面预览
+
+当前版本提供 Codex 风格的三栏工作区：左侧管理模式、模型、会话和项目，中间进行对话，右侧承载终端、Diff、浏览器、文件和记忆工具。
+
+### 环境要求
+
+- Windows 10 或 Windows 11（x64）
+- Node.js 18 或更高版本（仅开发和构建需要）
+- npm 9 或更高版本（仅开发和构建需要）
+- KiloCode CLI 或兼容后端服务（运行完整 AI 功能需要）
+
+### 快速开始
 
 ```bash
+git clone https://github.com/realhenrylan/kilocode-app.git
 cd kilocode-app
 npm install
+npm run electron:dev
 ```
 
-### 开发模式
+浏览器预览模式：
 
 ```bash
-npm run dev          # Vite dev server（浏览器预览，模拟模式）
-npm run electron:dev # Electron 开发模式（需 KiloCode CLI）
+npm run dev
 ```
 
-### 构建
+浏览器预览用于查看前端界面；需要验证窗口、托盘、快捷键和桌面生命周期时，请使用 `npm run electron:dev`。
+
+### 构建与质量检查
 
 ```bash
-npx tsc --noEmit     # TypeScript 类型检查
-npx vite build       # Vite 生产构建
-npm run electron:build # 完整 Electron 打包
+# TypeScript + Vite 生产构建
+npm run build
+
+# 静态检查
+npm run lint
+
+# 构建 Windows 安装包
+npm run electron:build
 ```
 
-## 项目结构
+安装包默认输出到 `release/`。如果 Electron 或安装包进程仍在运行，Windows 可能锁定输出目录；重新构建前请先退出相关进程。
 
-```
+### 项目结构
+
+```text
 kilocode-app/
-├── electron/                    # Electron 主进程
-│   ├── main.ts                  # 主进程入口（窗口、崩溃恢复、生命周期）
-│   ├── preload.ts               # 预加载脚本（contextBridge API）
-│   ├── kilo-process.ts          # KiloCode CLI 子进程管理
-│   ├── ipc-handlers.ts          # IPC 通信处理
-│   ├── tray.ts                  # 系统托盘
-│   ├── shortcuts.ts             # 全局/应用快捷键
-│   └── auto-updater.ts          # 自动更新
-├── src/                         # React 前端
-│   ├── components/
-│   │   ├── layout/              # 布局 (AppShell, Sidebar, MainPanel, RightPanel, StatusBar, TitleBar)
-│   │   ├── chat/                # 对话 (ChatPanel, AssistantMessage, UserMessage, ToolCallCard)
-│   │   ├── composer/            # 输入 (Composer + 斜杠命令 + 内联补全)
-│   │   ├── sidebar/             # 侧边栏 (ModeSelector, ModelSelector, SessionList, ProjectPicker)
-│   │   ├── settings/            # 设置 (SettingsPanel, CustomModesSection, RulesSection)
-│   │   ├── terminal/            # 终端 (TerminalPanel)
-│   │   ├── browser/             # 浏览器 (BrowserPanel)
-│   │   ├── diff/                # Diff (DiffViewer)
-│   │   ├── common/              # 通用 (CodeBlock, FileTree, IndexStatus, MemoryBank, ThemeToggle)
-│   │   └── permission/          # 权限 (PermissionDialog)
-│   ├── stores/                  # Zustand 状态管理 (9 个 store)
-│   ├── services/                # API 客户端 + 事件流
-│   ├── hooks/                   # React Hooks (4 个)
-│   ├── data/                    # 模拟数据 (629 模型)
-│   ├── types/                   # TypeScript 类型定义
-│   ├── utils/                   # 工具函数
-│   └── styles/                  # 全局样式 + CSS 变量主题
-├── SPEC.md                      # 项目规格文档
-├── PROGRESS.md                  # 进度与交接文档
-├── CHANGELOG.md                 # 更新日志
-└── package.json
+├── electron/              # Electron 主进程、预加载、IPC、托盘和快捷键
+├── src/                   # React 前端、组件、状态、服务和样式
+├── public/                # 前端静态资源
+├── resources/             # Windows 应用和托盘图标资源
+├── scripts/               # 开发和构建辅助脚本
+├── electron-builder.yml   # Windows 打包配置
+├── CHANGELOG.md           # 版本变更记录
+├── SPEC.md                # 项目规格文档
+└── PROGRESS.md            # 当前进度与交接记录
 ```
 
-## 主题系统
+### 技术栈
 
-支持三种主题模式：
-- **深色 (Dark)** — 默认，Codex 风格深色主题
-- **浅色 (Light)** — 浅色主题，品牌黄加深保证对比度
-- **跟随系统 (System)** — 自动跟随 Windows 系统主题设置
+| 层级 | 技术 |
+| --- | --- |
+| 桌面框架 | Electron 43 |
+| 前端 | React 19 + TypeScript |
+| 构建 | Vite 8 + electron-builder |
+| UI | Radix UI + Tailwind CSS v4 |
+| 状态管理 | Zustand 5 |
+| 代码高亮 | Shiki |
+| 终端 | `@xterm/xterm` |
+| 后端通信 | HTTP REST + SSE |
 
-品牌色策略：
-- **KiloCode 黄 (#FFD700)** — 品牌标识：Logo、激活高亮、发送按钮
-- **Cyan (#00bcd4)** — 交互反馈：链接、代码引用、进度条
+### 相关文档
 
-## 模拟模式
+- [项目规格](./SPEC.md)
+- [当前进度](./PROGRESS.md)
+- [变更日志](./CHANGELOG.md)
+- [设计文档](./DESIGN.md)
 
-未连接 KiloCode CLI 时，应用自动进入模拟模式：
-- 629 个模拟模型（22 个提供商）
-- 5 种内置模式 + 2 个自定义模式的模拟回复
-- 5 条记忆条目 + 5 条规则文件
-- 3 个浏览器示例页面
-- Token 用量估算
+### 许可证
 
-所有 UI 组件可正常交互，方便开发和演示。
+本项目采用 [MIT License](./LICENSE)。
 
-## 许可证
+## English
 
-MIT
+### Overview
+
+KiloCode Desktop is a Windows-first AI coding workspace. It uses Electron as the desktop shell, React + TypeScript for the UI, and the KiloCode CLI as the runtime for AI agent capabilities.
+
+This project is currently a developer preview. It is intended for exploring the desktop experience, validating native integrations, and contributing to the implementation. A working KiloCode CLI or compatible backend is required for full AI functionality. Without one, the application falls back to simulation mode so the main interface can still be explored and demonstrated.
+
+### Highlights
+
+- **Agent workflows**: Code, Plan, Ask, Debug, and Review modes, plus custom modes
+- **Model and provider management**: model catalog, defaults, API configuration, custom endpoints, and local model entry points
+- **Streaming conversations**: Markdown rendering, syntax highlighting, tool-call cards, session management, and session branching
+- **Developer tools**: integrated terminal, file tree, Diff viewer, and project/workspace context
+- **Browser control**: navigation, screenshots, interaction actions, accessibility tree, and JavaScript console
+- **MCP and permissions**: MCP server management, enable/disable controls, default policies, and per-tool confirmation
+- **Engineering assistance**: rules, memory, token usage, file uploads, inline completion, and voice input
+- **Desktop integration**: dark/light/system themes, system tray, shortcuts, persisted state, and crash recovery
+
+### Requirements
+
+- Windows 10 or Windows 11 (x64)
+- Node.js 18 or later for development and builds
+- npm 9 or later for development and builds
+- KiloCode CLI or a compatible backend service for full AI functionality
+
+### Quick start
+
+```bash
+git clone https://github.com/realhenrylan/kilocode-app.git
+cd kilocode-app
+npm install
+npm run electron:dev
+```
+
+For a browser-only preview:
+
+```bash
+npm run dev
+```
+
+The browser preview is useful for inspecting the renderer. Use `npm run electron:dev` to validate the native window, tray, shortcuts, and desktop lifecycle.
+
+### Build and checks
+
+```bash
+# TypeScript and Vite production build
+npm run build
+
+# Static analysis
+npm run lint
+
+# Build the Windows installer
+npm run electron:build
+```
+
+The installer is written to `release/` by default. Windows may lock the output directory while Electron or an installer process is running; exit those processes before rebuilding.
+
+### Architecture
+
+| Layer | Responsibility |
+| --- | --- |
+| Electron main process | Window lifecycle, CLI process, IPC, tray, shortcuts, and recovery |
+| Preload | Secure `contextBridge` APIs exposed to the renderer |
+| React renderer | Workspace UI, chat, settings, tools, and interaction flows |
+| Zustand stores | Sessions, configuration, connection, UI, browser, memory, index, usage, and rules |
+| Services | KiloCode REST client and SSE event stream |
+
+### Repository layout
+
+```text
+kilocode-app/
+├── electron/              # Main process, preload, IPC, tray, and shortcuts
+├── src/                   # React UI, components, state, services, and styles
+├── public/                # Renderer assets
+├── resources/             # Windows application and tray icon assets
+├── scripts/               # Development and build helpers
+├── electron-builder.yml   # Windows packaging configuration
+├── CHANGELOG.md           # Release history
+├── SPEC.md                # Project specification
+└── PROGRESS.md            # Project status and handoff notes
+```
+
+### Documentation
+
+- [Project specification](./SPEC.md)
+- [Current progress](./PROGRESS.md)
+- [Changelog](./CHANGELOG.md)
+- [Design documentation](./DESIGN.md)
+
+### License
+
+This project is released under the [MIT License](./LICENSE).
