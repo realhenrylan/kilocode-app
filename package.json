@@ -4,7 +4,7 @@
   "version": "0.8.0-dev",
   "description": "KiloCode Windows Desktop Application - AI Coding Agent",
   "type": "module",
-  "main": "dist-electron/main/index.js",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

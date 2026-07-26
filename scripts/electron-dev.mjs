@@ -13,6 +13,10 @@
 
 import { spawn } from 'child_process'
 import { createServer } from 'net'
+import { readFileSync } from 'fs'
+
+/** 从 package.json 读取 Electron 入口文件路径，避免硬编码 */
+const electronMain = JSON.parse(readFileSync('package.json', 'utf-8')).main
 
 const VITE_PORT = 5173
 const VITE_HOST = 'localhost'
@@ -88,7 +92,7 @@ async function main() {
 
   // 启动 Electron，显式传递 dev server URL
   console.log('[electron-dev] Starting Electron with VITE_DEV_SERVER_URL=' + devServerUrl)
-  const electronProcess = spawn('npx', ['electron', 'dist-electron/main.js'], {
+  const electronProcess = spawn('npx', ['electron', electronMain], {
     stdio: 'inherit',
     shell: true,
     env: {
