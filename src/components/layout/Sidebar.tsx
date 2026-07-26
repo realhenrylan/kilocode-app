@@ -29,7 +29,7 @@ export function Sidebar() {
         <div className="kc-side-logo">
           {/* KiloCode 官方 logo：来自 kilo.ai/kilo-v4.svg */}
           <div className="h-[22px] w-[22px] flex-shrink-0">
-            <img src="/kilo-logo.svg" alt="KiloCode" className="h-full w-full object-contain" />
+            <img src="./kilo-logo.svg" alt="KiloCode" className="h-full w-full object-contain" />
           </div>
           <span>KiloCode</span>
         </div>

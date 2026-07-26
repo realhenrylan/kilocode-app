@@ -81,7 +81,7 @@ function EmptyState() {
   return (
     <div className="kc-empty-state">
       <div className="kc-empty-brand">
-        <img src="/kilo-logo.svg" alt="" />
+        <img src="./kilo-logo.svg" alt="" />
       </div>
       <h2 className="kc-empty-title">KiloCode</h2>
       <p className="kc-empty-subtitle">
