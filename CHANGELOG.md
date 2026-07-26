@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+### Fix — 未连接时不再伪装 AI 回复
+- 修复未连接 CLI 时输入任何内容都输出硬编码模拟回复的问题
+- 将 `simulateReply` 从伪装 AI 回复改为明确的"未连接"系统提示
+- 移除虚假的 Token 用量和费用计算，避免误导用户
+- 新增 `MessageMetadata.isSystemNotice` 字段，UI 可据此区分系统提示与 AI 回复
+
 ### Style — 像素级对齐设计稿 V2.3
 - TitleBar: 窗口按钮改为设计稿风格（stroke SVG），移除左侧 Logo 文字，高度 38px
 - ChatPanel: 对话列改为 max-width 720px 居中（justify-center），消息间距 22px，padding 28/24/12

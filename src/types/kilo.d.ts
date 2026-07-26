@@ -30,6 +30,7 @@ export type PermissionDecision = 'allow' | 'deny' | 'always-allow'
 export interface KiloSession {
   id: string
   title: string
+  forkedFrom?: string
   mode: AgentMode
   model: string
   status: SessionStatus
@@ -60,6 +61,8 @@ export interface MessageMetadata {
   duration?: number
   tokenUsage?: TokenUsage
   cost?: number
+  /** 标记为系统提示消息（如未连接提示），UI 可据此区分样式 */
+  isSystemNotice?: boolean
 }
 
 /* ===== Token 用量 ===== */

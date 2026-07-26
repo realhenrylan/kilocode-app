@@ -550,31 +550,20 @@ export const useSessionStore = create<SessionState>()(
 )
 
 /**
- * 模拟 AI 回复（未连接 CLI 时的开发/演示模式）
+ * 未连接 CLI 时的提示回复
  *
- * 逐字输出模拟回复，让 UI 交互流程可验证
+ * 明确告知用户当前未连接，避免伪装成 AI 回复造成误解
  */
-async function simulateReply(userContent: string, mode: AgentMode): Promise<void> {
-  const modeResponses: Record<string, string> = {
-    code: `我来帮你实现这个功能。\n\n\`\`\`typescript\n// 示例代码实现\nfunction hello(name: string): string {\n  return \`Hello, \${name}!\`;\n}\n\nconsole.log(hello("KiloCode"));\n\`\`\`\n\n这段代码定义了一个简单的 \`hello\` 函数。你可以告诉我更多需求，我会继续完善实现。`,
-    plan: `## 架构设计方案\n\n基于你的需求，我建议以下方案：\n\n### 1. 整体架构\n- 采用模块化设计\n- 分层架构：表示层 → 业务层 → 数据层\n\n### 2. 技术选型\n- 前端：React + TypeScript\n- 状态管理：Zustand\n- 样式：Tailwind CSS\n\n### 3. 实现步骤\n1. 搭建项目脚手架\n2. 实现核心数据模型\n3. 开发 UI 组件\n4. 集成测试\n\n需要我深入某个部分吗？`,
-    ask: `关于你的问题：\n\n这是一个很好的问题。让我从几个角度来分析：\n\n1. **技术层面**：当前方案采用了成熟的技术栈，社区支持良好\n2. **性能层面**：通过合理的架构设计，可以满足大部分场景的性能需求\n3. **可维护性**：模块化设计使得后续维护和扩展更加容易\n\n如果你需要更具体的解答，请提供更多上下文信息。`,
-    debug: `让我帮你排查这个问题。\n\n### 调试步骤\n\n1. **检查错误信息**：请提供完整的错误堆栈\n2. **验证输入数据**：确认传入参数是否符合预期\n3. **检查依赖版本**：确保所有依赖版本兼容\n\n### 常见原因\n- 类型不匹配\n- 异步操作未正确处理\n- 环境变量未配置\n\n请分享具体的错误信息，我可以给出更精准的修复方案。`,
-    review: `## 代码审查报告\n\n### 总体评价\n代码结构清晰，命名规范，整体质量良好。\n\n### 建议改进\n\n1. **错误处理** ⚠️\n   - 建议添加更完善的错误边界处理\n   - 考虑添加重试机制\n\n2. **性能优化** 📊\n   - 大列表考虑使用虚拟滚动\n   - 避免不必要的重渲染\n\n3. **安全性** 🔒\n   - 确保用户输入经过验证和清理\n   - API 调用添加超时处理\n\n### 亮点\n- TypeScript 类型定义完整\n- 组件职责划分清晰`,
-  }
+async function simulateReply(_userContent: string, mode: AgentMode): Promise<void> {
+  // 获取当前模式名称（支持自定义模式）
+  const customModes = useConfigStore.getState().customModes
+  const customMode = customModes.find((m) => m.slug === mode)
+  const modeName = customMode?.name || mode
 
-  // 自定义模式：使用系统提示词生成通用回复
-  let response = modeResponses[mode]
-  if (!response) {
-    // 尝试从自定义模式中获取名称
-    const customModes = useConfigStore.getState().customModes
-    const customMode = customModes.find((m) => m.slug === mode)
-    const modeName = customMode?.name || mode
-    response = `[${modeName} 模式]\n\n我已切换到 **${modeName}** 模式。${customMode?.description ? ` ${customMode.description}` : ''}\n\n请告诉我你需要什么帮助，我会按照此模式的专属策略来响应。`
-  }
+  const response = `⚠️ **未连接到 AI 服务**\n\n当前未检测到 CLI 连接，无法调用 AI 模型。\n\n**请检查以下事项：**\n1. 确认 KiloCode CLI 已启动并运行\n2. 检查 API Key 是否已正确配置\n3. 查看状态栏的连接状态指示器\n\n当前模式：**${modeName}**\n\n连接成功后，你的消息将发送给 AI 模型处理。`
+
+  // 逐字输出，保持流式 UI 体验
   const chars = response.split('')
-
-  // 逐字输出，模拟流式效果
   for (let i = 0; i < chars.length; i++) {
     await new Promise((resolve) => setTimeout(resolve, 8 + Math.random() * 12))
     useSessionStore.setState((s) => ({
@@ -582,23 +571,15 @@ async function simulateReply(userContent: string, mode: AgentMode): Promise<void
     }))
   }
 
-  // 流式完成，添加完整消息
-  const inputTokens = Math.ceil(userContent.length / 4) // 粗略估算：4 字符 ≈ 1 token
-  const outputTokens = Math.ceil(response.length / 4)
+  // 流式完成，添加系统提示消息（标记为 system 而非 assistant，避免混淆）
   const assistantMessage: KiloMessage = {
-    id: `assistant-${Date.now()}`,
+    id: `system-${Date.now()}`,
     sessionId: useSessionStore.getState().activeSessionId || 'local',
     role: 'assistant',
     content: response,
     timestamp: new Date().toISOString(),
     metadata: {
-      tokenUsage: {
-        inputTokens,
-        outputTokens,
-        totalTokens: inputTokens + outputTokens,
-        cost: inputTokens * 0.003 / 1000 + outputTokens * 0.015 / 1000, // 模拟 Claude Sonnet 定价
-      },
-      duration: chars.length * 14, // 模拟耗时（ms）
+      isSystemNotice: true, // 标记为系统提示，UI 可据此区分样式
     },
   }
   useSessionStore.setState((s) => ({
@@ -607,6 +588,4 @@ async function simulateReply(userContent: string, mode: AgentMode): Promise<void
     isStreaming: false,
     activeToolCalls: [],
   }))
-  // 记录模拟 Token 用量
-  useTokenUsageStore.getState().recordUsage(assistantMessage.metadata!.tokenUsage!)
 }
