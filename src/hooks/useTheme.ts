@@ -12,7 +12,16 @@ import type { ThemeMode } from '@/types/kilo'
  * 4. 切换时添加过渡动画 class
  */
 export function useTheme() {
-  const { theme, resolvedTheme, setTheme, setResolvedTheme } = useUiStore()
+  const {
+    theme,
+    resolvedTheme,
+    editorFont,
+    editorFontSize,
+    ligaturesEnabled,
+    density,
+    setTheme,
+    setResolvedTheme,
+  } = useUiStore()
 
   /** 解析主题：system 模式下读取系统偏好 */
   function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
@@ -58,6 +67,15 @@ export function useTheme() {
     mediaQuery.addEventListener('change', handler)
     return () => mediaQuery.removeEventListener('change', handler)
   }, [theme, setResolvedTheme])
+
+  // 将外观页的编辑器选项映射到全局设计令牌。
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--editor-font-family', `"${editorFont}", "Fira Code", Menlo, Monaco, monospace`)
+    root.style.setProperty('--editor-font-size', `${editorFontSize}px`)
+    root.style.setProperty('--editor-font-ligatures', ligaturesEnabled ? 'normal' : 'none')
+    root.style.setProperty('--density-scale', density === 'compact' ? '0.88' : '1')
+  }, [density, editorFont, editorFontSize, ligaturesEnabled])
 
   return {
     theme,

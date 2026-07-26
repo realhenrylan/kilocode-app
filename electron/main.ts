@@ -102,7 +102,7 @@ function createWindow(): void {
     if (is.dev && devServerUrl) {
       mainWindow.loadURL(devServerUrl)
     } else {
-      mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+      mainWindow.loadFile(join(__dirname, '../dist/index.html'))
     }
   } catch (err) {
     console.error('[main] Failed to create window:', err)

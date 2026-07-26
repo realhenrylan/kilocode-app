@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+### Fix — 修复 "Error Launching App" 启动失败
+- 修复 `package.json` 的 `main` 字段指向不存在的 `dist-electron/main/index.js`，改为实际输出路径 `dist-electron/main.js`
+- 修复生产模式 `loadFile` 路径错误：`../renderer/index.html`（不存在）改为 `../dist/index.html`（Vite 实际输出目录）
+- 修复 CSP 策略阻止 Vite HMR Worker：`script-src` 添加 `blob:`，新增 `worker-src 'self' blob:`，解决 SharedWorker 被 CSP 拦截导致 HMR 断连
+- 修复 `electron-dev.mjs` 硬编码入口路径，改为从 `package.json` 动态读取 `main` 字段
+- 补充 `resources/icon.png`（从 SVG 转换），修复 electron-builder 打包时找不到图标文件
+
 ### Fix — 未连接时不再伪装 AI 回复
 - 修复未连接 CLI 时输入任何内容都输出硬编码模拟回复的问题
 - 将 `simulateReply` 从伪装 AI 回复改为明确的"未连接"系统提示

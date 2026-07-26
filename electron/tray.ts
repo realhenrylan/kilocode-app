@@ -7,14 +7,17 @@ import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
  */
 let tray: Tray | null = null
 
+/** 官方 Kilo Code mark（来源：Kilo-Org/kilocode） */
+const KILO_MARK_SVG = `<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M512 0H0V512H512V0Z" fill="black"/>
+  <path d="M322 377H377V421H307.857L278 391.143V322H322V377ZM421 307.857L391.143 278H322V322L377 322V377H421V307.857ZM234 278H190V322H234V278ZM91 391.143L120.857 421H234V377H135V278H91V391.143ZM371.172 189.999V120.856L341.315 90.9995H278V135H327.172V189.999H278V233.999H421V189.999H371.172ZM135 91H91V233.999H135V184.5H190V233.999H234V184.5L190 140.5H135V91ZM234 91H190V140.5H234V91Z" fill="#FAF74F"/>
+</svg>`
+
 export function createTray(mainWindow: BrowserWindow): Tray {
-  // 创建托盘图标（16x16 品牌黄色方块）
+  // 使用官方 Kilo Code mark，避免托盘显示与窗口/安装包不一致。
   const icon = nativeImage.createFromDataURL(
     'data:image/svg+xml;base64,' +
-    Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-      <rect width="16" height="16" rx="3" fill="#FFD700"/>
-      <text x="8" y="12" font-size="10" font-weight="bold" text-anchor="middle" fill="black">K</text>
-    </svg>`).toString('base64')
+    Buffer.from(KILO_MARK_SVG).toString('base64')
   )
 
   tray = new Tray(icon)
