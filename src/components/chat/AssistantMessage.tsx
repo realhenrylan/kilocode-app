@@ -1,4 +1,3 @@
-import { cn } from '@/utils/cn'
 import { ToolCallCard } from './ToolCallCard'
 import { CodeBlock } from '@/components/common/CodeBlock'
 import ReactMarkdown from 'react-markdown'
@@ -35,7 +34,7 @@ export function AssistantMessage({
   const duration = message?.metadata?.duration
 
   return (
-    <div className="group relative flex justify-start">
+    <div className="kc-msg-ai group">
       {/* Hover 分叉按钮 */}
       {onFork && messageId && !isStreaming && (
         <button
@@ -47,19 +46,10 @@ export function AssistantMessage({
           <GitBranch size={14} />
         </button>
       )}
-      <div className="max-w-[90%] space-y-2 text-[13px] leading-[1.7] text-[var(--text-primary)]">
-        {/* 工具调用展示 */}
-        {toolCalls && toolCalls.length > 0 && (
-          <div className="space-y-1">
-            {toolCalls.map((call) => (
-              <ToolCallCard key={call.id} toolCall={call} />
-            ))}
-          </div>
-        )}
-
+      <div className="kc-msg-ai-body">
         {/* Markdown 内容 */}
         {content && (
-          <div className="prose-invert">
+          <div className="kc-msg-content prose-invert">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -106,11 +96,20 @@ export function AssistantMessage({
           </div>
         )}
 
+        {/* 工具调用展示 */}
+        {toolCalls && toolCalls.length > 0 && (
+          <div className="kc-tool-stack">
+            {toolCalls.map((call) => (
+              <ToolCallCard key={call.id} toolCall={call} />
+            ))}
+          </div>
+        )}
+
         {/* Token 用量元数据 — 中性色，去品牌黄 */}
         {!isStreaming && tokenUsage && (
           <div className="flex items-center gap-3 text-[11.5px] text-[var(--text-tertiary)]">
-            <span>↑ {tokenUsage.inputTokens?.toLocaleString() ?? tokenUsage.input?.toLocaleString() ?? '—'}</span>
-            <span>↓ {tokenUsage.outputTokens?.toLocaleString() ?? tokenUsage.output?.toLocaleString() ?? '—'}</span>
+            <span>↑ {tokenUsage.input?.toLocaleString() ?? '—'}</span>
+            <span>↓ {tokenUsage.output?.toLocaleString() ?? '—'}</span>
             {tokenUsage.cost != null && tokenUsage.cost > 0 && (
               <span>
                 ${tokenUsage.cost < 0.001 ? tokenUsage.cost.toFixed(6) : tokenUsage.cost < 0.01 ? tokenUsage.cost.toFixed(4) : tokenUsage.cost.toFixed(2)}

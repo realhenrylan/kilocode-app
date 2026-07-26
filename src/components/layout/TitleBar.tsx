@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { cn } from '@/utils/cn'
 
 /**
  * 自定义标题栏组件
@@ -28,12 +27,12 @@ export function TitleBar() {
   const handleClose = () => isElectron && window.api.window.close()
 
   return (
-	    <div className="titlebar-drag flex h-[38px] items-center justify-end gap-0.5 border-b border-[var(--divider)] bg-[var(--bg-primary)] select-none pr-1.5">
+    <div className="kc-titlebar titlebar-drag">
       {/* 右侧：窗口控制按钮（设计稿风格：stroke SVG） */}
-      <div className="titlebar-no-drag flex items-center gap-0.5">
+      <div className="kc-window-controls titlebar-no-drag">
         <button
           onClick={handleMinimize}
-          className="flex h-[30px] w-[42px] items-center justify-center rounded-md text-[var(--text-tertiary)] transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-secondary)]"
+          className="kc-win-btn"
           aria-label="最小化"
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
@@ -42,7 +41,7 @@ export function TitleBar() {
         </button>
         <button
           onClick={handleMaximize}
-          className="flex h-[30px] w-[42px] items-center justify-center rounded-md text-[var(--text-tertiary)] transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-secondary)]"
+          className="kc-win-btn"
           aria-label={maximized ? '还原' : '最大化'}
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
@@ -51,7 +50,7 @@ export function TitleBar() {
         </button>
         <button
           onClick={handleClose}
-          className="flex h-[30px] w-[42px] items-center justify-center rounded-md text-[var(--text-tertiary)] transition-colors hover:bg-[var(--error)] hover:text-white"
+          className="kc-win-btn kc-win-close"
           aria-label="关闭"
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">

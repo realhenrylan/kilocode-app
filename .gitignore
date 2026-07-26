@@ -35,3 +35,9 @@ credentials.json
 # OS
 Thumbs.db
 Desktop.ini
+
+# Tool / temp directories
+.playwright-cli/
+.playwright-mcp/
+.workbuddy/
+output/

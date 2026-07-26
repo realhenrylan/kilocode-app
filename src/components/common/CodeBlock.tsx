@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
-import { cn } from '@/utils/cn'
 
 /**
  * 代码块组件
@@ -10,6 +9,7 @@ import { cn } from '@/utils/cn'
  */
 export function CodeBlock({ code, language }: { code: string; language?: string }) {
   const [copied, setCopied] = useState(false)
+  const lines = code.split('\n')
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code)
@@ -18,15 +18,15 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
   }
 
   return (
-    <div className="my-2.5 overflow-hidden rounded-[10px] border border-[var(--border-subtle)]">
+    <div className="kc-codeblock">
       {/* 头部：语言标签 + 复制按钮 */}
-      <div className="flex items-center border-b border-[var(--border-subtle)] bg-[var(--code-bg)] px-3 py-1.5">
-        <span className="font-mono text-[11.5px] text-[var(--text-tertiary)]">
+      <div className="kc-code-head">
+        <span className="kc-code-label">
           {language || 'text'}
         </span>
         <button
           onClick={handleCopy}
-          className="ml-auto flex items-center gap-1 rounded text-[11.5px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+          className="kc-code-copy"
         >
           {copied ? (
             <>
@@ -43,9 +43,29 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
       </div>
 
       {/* 代码内容 */}
-      <pre className="overflow-x-auto bg-[var(--code-bg)] px-3.5 py-3 text-[12px] leading-[1.7] text-[#C8C6BE]">
-        <code>{code}</code>
+      <pre className="kc-code-pre">
+        <code>
+          {lines.map((line, index) => (
+            <span key={`${index}-${line}`}>
+              {highlightLine(line)}
+              {index < lines.length - 1 ? '\n' : ''}
+            </span>
+          ))}
+        </code>
       </pre>
     </div>
   )
+}
+
+function highlightLine(line: string) {
+  const tokenPattern = /(\/\/.*$|`[^`]*`|'[^']*'|"[^"]*"|\b(?:const|let|return|function|string|number|boolean)\b|\b(?:shardedStorage|getItem|setItem)\b)/g
+  return line.split(tokenPattern).map((part, index) => {
+    if (!part) return null
+    let className = ''
+    if (part.startsWith('//')) className = 'tk-cm'
+    else if (/^(?:`|'|")/.test(part)) className = 'tk-str'
+    else if (/^(?:const|let|return|function|string|number|boolean)$/.test(part)) className = 'tk-kw'
+    else if (/^(?:shardedStorage|getItem|setItem)$/.test(part)) className = 'tk-fn'
+    return <span key={`${index}-${part}`} className={className}>{part}</span>
+  })
 }

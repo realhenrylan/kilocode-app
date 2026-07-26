@@ -3,10 +3,10 @@ import { cn } from '@/utils/cn'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useTokenUsageStore, formatTokenCount, formatCost } from '@/stores/tokenUsageStore'
-import { Send, Paperclip, Mic, AtSign, Square, X, FileText, Image, ChevronDown, Code, Lightbulb, HelpCircle, Bug, ShieldCheck, Cpu, Search, Zap, Brain, Sparkles } from 'lucide-react'
+import { Plus, Mic, AtSign, Square, X, FileText, Image, ChevronDown, Code, Lightbulb, HelpCircle, Bug, ShieldCheck, Cpu, Search, Zap, Brain, Sparkles } from 'lucide-react'
 import { useVoiceInput } from '@/hooks/useVoiceInput'
 import { useInlineCompletion } from '@/hooks/useInlineCompletion'
-import type { FileAttachment, BuiltinMode, CustomMode } from '@/types/kilo'
+import type { FileAttachment, BuiltinMode } from '@/types/kilo'
 
 /**
  * Composer 输入组件（Codex V2.3 风格）
@@ -324,10 +324,15 @@ export function Composer() {
     return names
   })()
 
+  const activeModel = models.find((model) => model.id === currentModel)
+  const modelLabel = currentModel === 'claude-sonnet-4-20250514'
+    ? 'Claude Sonnet 4.5'
+    : activeModel?.name || currentModel || '选择模型'
+
   const hasContent = value.trim().length > 0 || attachments.length > 0
 
   return (
-    <div className="flex flex-col items-center px-6 pb-1.5 pt-2.5">
+    <div className="kc-composer-host">
       {/* 斜杠命令弹窗 */}
       {showSlashCommands && (
         <SlashCommandPopup
@@ -337,7 +342,7 @@ export function Composer() {
       )}
 
       {/* Composer 浮起大圆角卡 */}
-      <div className="w-full max-w-[720px] rounded-[18px] border border-[var(--border)] bg-[var(--bg-secondary)] shadow-[var(--shadow)]" style={{ padding: '14px 14px 10px' }}>
+      <div className="kc-composer">
         {/* 附件预览条 */}
         {attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">
@@ -366,7 +371,7 @@ export function Composer() {
         )}
 
         {/* 输入区域 */}
-        <div className="relative min-h-[38px]">
+        <div className="kc-composer-input-wrap">
           {/* Ghost text 层 */}
           {ghostText && !isStreaming && (
             <div className="pointer-events-none absolute inset-0 whitespace-pre-wrap break-words text-[13.5px] text-[var(--text-tertiary)] opacity-40" aria-hidden="true">
@@ -380,21 +385,21 @@ export function Composer() {
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="描述你的任务，@ 引用文件，/ 唤起命令"
-            className="min-h-[38px] w-full resize-none bg-transparent text-[13.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
+            className="kc-composer-input"
             rows={1}
           />
         </div>
 
         {/* 发丝线分隔：输入区与控件区 */}
-        <div className="mt-2.5 border-t border-[var(--border-subtle)] pt-2.5">
-          <div className="flex items-center gap-1.5">
+        <div className="kc-composer-divider">
+          <div className="kc-composer-bar">
             {/* 附件按钮 */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-secondary)]"
+              className="kc-composer-attach"
               aria-label="添加附件"
             >
-              <Paperclip size={15} />
+              <Plus size={15} />
             </button>
             <input
               ref={fileInputRef}
@@ -409,7 +414,7 @@ export function Composer() {
             <div className="relative" ref={modeDropdownRef}>
               <button
                 onClick={() => { setShowModeDropdown(!showModeDropdown); setShowModelDropdown(false) }}
-                className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[rgba(255,255,255,0.04)] px-3 py-[5px] text-xs text-[var(--text-secondary)] transition-colors hover:bg-[rgba(255,255,255,0.07)]"
+                className="kc-pill"
               >
                 <activeModeInfo.icon size={11} />
                 <span className="font-medium text-[var(--text-primary)]">{activeModeInfo.label}</span>
@@ -457,10 +462,10 @@ export function Composer() {
             <div className="relative" ref={modelDropdownRef}>
               <button
                 onClick={() => { setShowModelDropdown(!showModelDropdown); setShowModeDropdown(false) }}
-                className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[rgba(255,255,255,0.04)] px-3 py-[5px] text-xs text-[var(--text-secondary)] transition-colors hover:bg-[rgba(255,255,255,0.07)]"
+                className="kc-pill"
               >
                 <Cpu size={11} />
-                <span className="max-w-[140px] truncate font-medium text-[var(--text-primary)]">{currentModel || '选择模型'}</span>
+                <span className="max-w-[140px] truncate font-medium text-[var(--text-primary)]">{modelLabel}</span>
                 <ChevronDown size={9} className="text-[var(--text-tertiary)]" />
               </button>
 
@@ -547,9 +552,9 @@ export function Composer() {
             </div>
 
             {/* 右侧：语音 + 发送 */}
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="kc-composer-right">
               {/* @ 引用 */}
-              <button
+                  <button
                 className="flex h-[30px] w-[30px] items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-secondary)]"
                 aria-label="引用文件"
               >
@@ -576,7 +581,7 @@ export function Composer() {
               {isStreaming ? (
                 <button
                   onClick={cancelGeneration}
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[var(--error)] text-white transition-colors"
+                  className="kc-send kc-send-stop"
                   aria-label="停止生成"
                 >
                   <Square size={12} />
@@ -586,14 +591,16 @@ export function Composer() {
                   onClick={handleSend}
                   disabled={!hasContent}
                   className={cn(
-                    'flex h-[30px] w-[30px] items-center justify-center rounded-full transition-all',
+                    'kc-send',
                     hasContent
                       ? 'bg-[var(--brand-primary)] text-black shadow-[0_2px_8px_rgba(255,215,0,0.25)]'
                       : 'bg-[rgba(255,255,255,0.08)] text-[var(--text-tertiary)]'
                   )}
                   aria-label="发送"
                 >
-                  <Send size={14} />
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7" />
+                  </svg>
                 </button>
               )}
             </div>
@@ -602,11 +609,11 @@ export function Composer() {
       </div>
 
       {/* 底部提示行 */}
-      <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-[var(--text-tertiary)]">
+      <div className="kc-composer-hint">
         <span>KiloCode 可能出错，请核查重要信息</span>
         {usage.total > 0 && (
           <span className="opacity-70">
-            本次会话 {formatCost(usage.cost)} · {formatTokenCount(usage.total)} tokens
+            本次会话 {formatCost(usage.cost || 0)} · {formatTokenCount(usage.total)} tokens
           </span>
         )}
       </div>
@@ -646,7 +653,12 @@ function SlashCommandPopup({
   ]
 
   return (
-    <div className="absolute bottom-full left-6 right-6 z-50 mb-2 max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-lg" style={{ maxWidth: '720px', margin: '0 auto' }}>
+    <div
+      className="absolute bottom-full left-6 right-6 z-50 mb-2 max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-lg"
+      style={{ maxWidth: '720px', margin: '0 auto' }}
+      tabIndex={-1}
+      onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}
+    >
       <div className="p-1">
         <p className="px-2 py-1 text-[10px] font-medium text-[var(--text-tertiary)]">模式切换</p>
         {builtinCommands.map((cmd) => (

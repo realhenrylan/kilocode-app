@@ -1,8 +1,15 @@
 import { useSessionStore } from '@/stores/sessionStore'
 import { UserMessage } from './UserMessage'
 import { AssistantMessage } from './AssistantMessage'
-import { MessageSquare } from 'lucide-react'
 import { useEffect, useRef, useCallback } from 'react'
+import { Bug, Code2, Layers3, ScanSearch, Sparkles } from 'lucide-react'
+
+const EMPTY_PROMPTS = [
+  { icon: Code2, label: '编写代码', prompt: '帮我实现...' },
+  { icon: Bug, label: '修复 Bug', prompt: '帮我调试...' },
+  { icon: ScanSearch, label: '代码审查', prompt: '审查这段代码...' },
+  { icon: Layers3, label: '架构设计', prompt: '设计架构方案...' },
+]
 
 /**
  * 对话面板
@@ -32,15 +39,15 @@ export function ChatPanel() {
   // 空状态
   if (messages.length === 0 && !isStreaming) {
     return (
-      <div className="flex h-full justify-center overflow-y-auto">
+      <div className="kc-chat-scroll">
         <EmptyState />
       </div>
     )
   }
 
   return (
-    <div ref={scrollRef} className="flex h-full justify-center overflow-y-auto">
-      <div className="flex w-full max-w-[720px] flex-col gap-[22px] px-6 pt-7 pb-3">
+    <div ref={scrollRef} className="kc-chat-scroll">
+      <div className="kc-chat-col">
         {messages.map((message) => (
           <div key={message.id}>
             {message.role === 'user' ? (
@@ -72,29 +79,26 @@ export function ChatPanel() {
 /** 空状态欢迎页 */
 function EmptyState() {
   return (
-    <div className="flex h-full w-full max-w-[720px] flex-col items-center justify-center px-6">
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[rgba(255,255,255,0.04)]">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
-          <span className="text-lg font-bold text-[var(--text-secondary)]">K</span>
-        </div>
+    <div className="kc-empty-state">
+      <div className="kc-empty-brand">
+        <img src="/kilo-logo.svg" alt="" />
       </div>
-      <h2 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">KiloCode</h2>
-      <p className="mb-8 text-sm text-[var(--text-tertiary)]">AI 驱动的编程助手</p>
+      <h2 className="kc-empty-title">KiloCode</h2>
+      <p className="kc-empty-subtitle">
+        AI 驱动的编程助手 <span className="kc-empty-status"><Sparkles size={11} /> 随时待命</span>
+      </p>
 
-      {/* 快捷操作建议 */}
-      <div className="grid w-full max-w-md grid-cols-2 gap-2">
-        {[
-          { label: '编写代码', prompt: '帮我实现...' },
-          { label: '修复 Bug', prompt: '帮我调试...' },
-          { label: '代码审查', prompt: '审查这段代码...' },
-          { label: '架构设计', prompt: '设计架构方案...' },
-        ].map((item) => (
+      <div className="kc-empty-prompts">
+        {EMPTY_PROMPTS.map((item) => (
           <button
             key={item.label}
-            className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-3 py-2 text-left transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)]"
+            className="kc-prompt-card"
           >
-            <p className="text-xs font-medium text-[var(--text-secondary)]">{item.label}</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">{item.prompt}</p>
+            <span className="kc-prompt-icon"><item.icon size={16} /></span>
+            <span className="kc-prompt-copy">
+              <span className="kc-prompt-title">{item.label}</span>
+              <span className="kc-prompt-caption">{item.prompt}</span>
+            </span>
           </button>
         ))}
       </div>

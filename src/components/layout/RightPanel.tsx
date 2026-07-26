@@ -24,20 +24,20 @@ export function RightPanel() {
   ]
 
   return (
-    <div className="flex h-full w-full flex-col bg-[#1F1E1B]">
+    <div className="kc-drawer">
       {/* 抽屉头部：分段控件 + 关闭按钮 */}
-      <div className="flex h-[46px] flex-shrink-0 items-center gap-2 border-b border-[var(--divider)] px-3">
+      <div className="kc-drawer-head">
         {/* 分段控件 */}
-        <div className="flex rounded-lg border border-[var(--border-subtle)] bg-[rgba(255,255,255,0.04)] p-0.5">
+        <div className="kc-segmented">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setRightPanelTab(tab.id)}
               className={cn(
-                'flex items-center gap-1.5 rounded-md px-3 py-[5px] text-xs transition-colors',
+                'kc-segmented-item',
                 rightPanelTab === tab.id
-                  ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  ? 'is-active'
+                  : ''
               )}
             >
               <tab.icon size={12} />
@@ -49,7 +49,7 @@ export function RightPanel() {
         {/* 关闭按钮 */}
         <button
           onClick={toggleRightPanel}
-          className="ml-auto flex h-[30px] w-[30px] items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-secondary)]"
+          className="kc-icon-btn kc-drawer-close"
           aria-label="关闭抽屉"
         >
           <X size={14} />
@@ -57,7 +57,7 @@ export function RightPanel() {
       </div>
 
       {/* 抽屉内容 */}
-      <div className="flex-1 overflow-hidden p-3">
+      <div className="kc-drawer-body">
         {rightPanelTab === 'terminal' && <TerminalPanel />}
         {rightPanelTab === 'browser' && <BrowserPanel />}
         {rightPanelTab === 'diff' && <DiffViewer />}

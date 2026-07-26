@@ -1,6 +1,6 @@
 import { cn } from '@/utils/cn'
 import { useSessionStore } from '@/stores/sessionStore'
-import { MessageSquare, Trash2, GitBranch, Search } from 'lucide-react'
+import { MessageSquare, Trash2, GitBranch } from 'lucide-react'
 import type { KiloSession } from '@/types/kilo'
 import { useState, useMemo } from 'react'
 
@@ -43,9 +43,8 @@ function groupSessionsByDate(sessions: KiloSession[]) {
   return groups.filter(g => g.sessions.length > 0)
 }
 
-export function SessionList() {
+export function SessionList({ searchQuery = '' }: { searchQuery?: string }) {
   const { sessions, activeSessionId, switchToSession, deleteSession, forkSession } = useSessionStore()
-  const [searchQuery, setSearchQuery] = useState('')
 
   /** 搜索过滤 */
   const filteredSessions = useMemo(() => {
@@ -62,7 +61,7 @@ export function SessionList() {
 
   if (sessions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-[var(--text-tertiary)]">
+      <div className="kc-empty-sessions">
         <MessageSquare size={24} className="mb-2 opacity-30" />
         <p className="text-xs">暂无会话</p>
         <p className="text-[10px]">输入消息开始新会话</p>
@@ -71,25 +70,11 @@ export function SessionList() {
   }
 
   return (
-    <div className="flex flex-col">
-      {/* 搜索框 */}
-      <div className="px-1 pb-1">
-        <div className="flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[rgba(255,255,255,0.02)] px-3 py-2 text-xs text-[var(--text-tertiary)]">
-          <Search size={13} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索会话"
-            className="flex-1 bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
-          />
-        </div>
-      </div>
-
+    <div className="kc-session-list">
       {/* 分组会话列表 */}
       {grouped.map((group) => (
         <div key={group.label}>
-          <div className="px-2 pt-2.5 pb-1 text-[11px] text-[var(--text-tertiary)]">{group.label}</div>
+          <div className="kc-side-label">{group.label}</div>
           {group.sessions.map((session) => (
             <SessionItem
               key={session.id}
@@ -104,7 +89,7 @@ export function SessionList() {
       ))}
 
       {filteredSessions.length === 0 && searchQuery && (
-        <div className="px-2 py-4 text-center text-xs text-[var(--text-tertiary)]">
+        <div className="kc-no-matches">
           无匹配会话
         </div>
       )}
@@ -130,7 +115,8 @@ function SessionItem({
   return (
     <div
       className={cn(
-        'group flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left transition-colors',
+        'kc-side-item group',
+        isActive && 'is-active',
         isActive
           ? 'bg-[var(--sidebar-item-active)] text-[var(--sidebar-item-active-text)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-item-hover)]'
@@ -140,13 +126,13 @@ function SessionItem({
       onMouseLeave={() => setShowActions(false)}
       title={session.title}
     >
-      <div className="flex-1 overflow-hidden">
-        <p className="truncate text-[12.5px]">{session.title || '新会话'}</p>
+      <div className="kc-side-item-title">
+        <p>{session.title || '新会话'}</p>
       </div>
 
       {/* 悬浮操作按钮 */}
       {showActions && (
-        <div className="flex flex-shrink-0 items-center gap-0.5">
+        <div className="kc-side-item-actions">
           <button
             onClick={(e) => {
               e.stopPropagation()

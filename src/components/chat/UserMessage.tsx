@@ -1,5 +1,5 @@
 import { FileText, Image, GitBranch } from 'lucide-react'
-import type { KiloMessage, FileAttachment } from '@/types/kilo'
+import type { KiloMessage } from '@/types/kilo'
 
 /**
  * 用户消息组件
@@ -22,7 +22,7 @@ export function UserMessage({ message, onFork }: { message: KiloMessage; onFork?
   }
 
   return (
-    <div className="group relative flex justify-end">
+    <div className="kc-msg-user-row group">
       {/* Hover 分叉按钮 */}
       {onFork && (
         <button
@@ -34,7 +34,7 @@ export function UserMessage({ message, onFork }: { message: KiloMessage; onFork?
           <GitBranch size={14} />
         </button>
       )}
-      <div className="max-w-[82%] rounded-[16px] rounded-br-[6px] border border-[var(--border-subtle)] bg-[var(--user-msg-bg)] px-4 py-2.5 text-[13px] text-[var(--text-primary)]">
+      <div className="kc-msg-user">
         {/* 附件标签 */}
         {attachments && attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">

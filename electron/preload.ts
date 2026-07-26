@@ -57,8 +57,6 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-expect-error 非隔离模式下的回退
-  window.electron = electronAPI
-  // @ts-expect-error
-  window.api = api
+  ;(globalThis as any).window.electron = electronAPI
+  ;(globalThis as any).window.api = api
 }

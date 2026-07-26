@@ -36,7 +36,7 @@ interface CompletionState {
   /** 是否正在请求补全 */
   isLoading: boolean
   /** 接受补全建议 */
-  acceptSuggestion: () => void
+  acceptSuggestion: () => string | undefined
   /** 清除补全建议 */
   dismissSuggestion: () => void
   /** 触发补全请求 */

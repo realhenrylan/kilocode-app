@@ -1,4 +1,3 @@
-import { cn } from '@/utils/cn'
 import type { KiloToolCall } from '@/types/kilo'
 import {
   FileEdit,
@@ -65,10 +64,10 @@ export function ToolCallCard({ toolCall }: { toolCall: KiloToolCall }) {
   const summary = getToolSummary(toolCall)
 
   return (
-    <div className="my-2.5 overflow-hidden rounded-[10px] border border-[var(--border-subtle)] bg-[rgba(255,255,255,0.02)]">
+    <div className="kc-tool-card">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-[12.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        className="kc-tool-row"
       >
         <span className="text-[var(--text-tertiary)]">{expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}</span>
         <Icon size={12} />
