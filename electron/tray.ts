@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
+import { join } from 'path'
 
 /**
  * 系统托盘管理
@@ -14,11 +15,28 @@ const KILO_MARK_SVG = `<svg width="512" height="512" viewBox="0 0 512 512" fill=
 </svg>`
 
 export function createTray(mainWindow: BrowserWindow): Tray {
-  // 使用官方 Kilo Code mark，避免托盘显示与窗口/安装包不一致。
-  const icon = nativeImage.createFromDataURL(
-    'data:image/svg+xml;base64,' +
-    Buffer.from(KILO_MARK_SVG).toString('base64')
-  )
+  // Windows 托盘对 SVG 的支持不稳定，优先使用 PNG。开发环境和打包后的资源路径不同。
+  const iconPaths = [
+    join(process.resourcesPath, 'icon.png'),
+    join(app.getAppPath(), 'resources', 'icon.png'),
+  ]
+  let icon = nativeImage.createEmpty()
+
+  for (const iconPath of iconPaths) {
+    const candidate = nativeImage.createFromPath(iconPath)
+    if (!candidate.isEmpty()) {
+      icon = candidate
+      break
+    }
+  }
+
+  // 资源读取失败时仍保留内嵌图标，避免托盘创建失败。
+  if (icon.isEmpty()) {
+    icon = nativeImage.createFromDataURL(
+      'data:image/svg+xml;base64,' +
+      Buffer.from(KILO_MARK_SVG).toString('base64')
+    )
+  }
 
   tray = new Tray(icon)
   tray.setToolTip('KiloCode')

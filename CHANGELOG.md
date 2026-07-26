@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+### Fix — 修复 Windows 系统托盘图标缺失
+- 托盘图标改为优先加载 PNG，避免 Windows 对 SVG 托盘图标支持不稳定
+- 将托盘图标作为运行时资源打入安装包，兼容开发环境与生产环境路径
+- 保留内嵌 SVG 作为资源读取失败时的兜底方案
+
 ### Fix — 修复生产环境 Logo 资源加载与空状态展示
 - 将 Logo 和 favicon 路径改为相对路径，确保 Electron 打包后的生产环境能够正确加载资源
 - 移除空状态 Logo 外层边框与背景容器，放大官方 Kilo Logo 并保持界面风格统一

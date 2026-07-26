@@ -7,6 +7,9 @@ files:
   - dist-electron
   - dist
   - "!node_modules"
+extraResources:
+  - from: resources/icon.png
+    to: icon.png
 win:
   icon: resources/icon.ico
   target:
