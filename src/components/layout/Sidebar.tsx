@@ -1,92 +1,71 @@
-import { cn } from '@/utils/cn'
 import { useUiStore } from '@/stores/uiStore'
 import { useSessionStore } from '@/stores/sessionStore'
-import { ModeSelector } from '@/components/sidebar/ModeSelector'
 import { SessionList } from '@/components/sidebar/SessionList'
-import { ModelSelector } from '@/components/sidebar/ModelSelector'
 import { ProjectPicker } from '@/components/sidebar/ProjectPicker'
-import { ThemeToggle } from '@/components/common/ThemeToggle'
 import {
   Settings,
-  PanelRightOpen,
-  MessageSquarePlus,
+  Plus,
+  Search,
 } from 'lucide-react'
+import { useState } from 'react'
 
 /**
- * 左侧边栏
+ * 左侧边栏（Codex V2.3 瘦身版）
  *
- * Codex风格：深色背景、品牌黄激活色、极简图标
- * 包含：Logo、模式选择、会话列表、项目选择、模型选择、底部操作
+ * 模式/模型选择器已迁入 Composer 底部胶囊
+ * 侧边栏只保留：Logo、新建任务、搜索、会话列表、底部项目+操作
+ * 宽度 256px，Logo 使用 KiloCode 官方 logo
  */
 export function Sidebar() {
-  const { setSettingsOpen, toggleRightPanel, rightPanelVisible } = useUiStore()
-  const { currentMode, createNewSession } = useSessionStore()
+  const { setSettingsOpen } = useUiStore()
+  const { createNewSession } = useSessionStore()
+  const [searchQuery, setSearchQuery] = useState('')
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Logo 区域 */}
-      <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] px-4 py-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--brand-primary)]">
-          <span className="text-xs font-bold text-black">K</span>
+    <div className="kc-sidebar">
+      {/* Logo + 新建任务 + 搜索 */}
+      <div className="kc-side-nav">
+        {/* Logo */}
+        <div className="kc-side-logo">
+          {/* KiloCode 官方 logo：来自 kilo.ai/kilo-v4.svg */}
+          <div className="h-[22px] w-[22px] flex-shrink-0">
+            <img src="/kilo-logo.svg" alt="KiloCode" className="h-full w-full object-contain" />
+          </div>
+          <span>KiloCode</span>
         </div>
-        <div>
-          <h1 className="text-sm font-semibold text-[var(--text-primary)]">KiloCode</h1>
-          <p className="text-[10px] text-[var(--text-tertiary)]">AI Coding Agent</p>
-        </div>
-      </div>
 
-      {/* 新建会话按钮 */}
-      <div className="px-3 py-2">
-        <button onClick={createNewSession} className="flex w-full items-center gap-2 rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-primary)] hover:bg-[var(--brand-subtle)] hover:text-[var(--brand-primary)]">
-          <MessageSquarePlus size={14} />
-          <span>新建会话</span>
+        {/* 新建任务按钮 */}
+        <button onClick={createNewSession} className="kc-new-task">
+          <Plus size={13} className="text-[var(--text-secondary)]" />
+          <span>新建任务</span>
         </button>
-      </div>
 
-      {/* 模式选择 */}
-      <div className="px-3 py-1">
-        <ModeSelector />
+        <label className="kc-side-search">
+          <Search size={13} />
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="搜索会话"
+            aria-label="搜索会话"
+          />
+        </label>
       </div>
 
       {/* 会话列表 */}
-      <div className="flex-1 overflow-y-auto px-2 py-1">
-        <SessionList />
+      <div className="kc-side-list">
+        <SessionList searchQuery={searchQuery} />
       </div>
 
       {/* 底部区域 */}
-      <div className="border-t border-[var(--border-subtle)]">
+      <div className="kc-side-bottom">
         {/* 项目选择 */}
-        <div className="px-3 py-2">
-          <ProjectPicker />
-        </div>
+        <ProjectPicker />
 
-        {/* 模型选择 */}
-        <div className="px-3 py-1">
-          <ModelSelector />
-        </div>
-
-        {/* 操作按钮行 */}
-        <div className="flex items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="flex h-7 w-7 items-center justify-center items-center rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
-              aria-label="设置"
-            >
-              <Settings size={14} />
-            </button>
-          </div>
-          {!rightPanelVisible && (
-            <button
-              onClick={toggleRightPanel}
-              className="flex h-7 items-center justify-center rounded-md p-1.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
-              aria-label="打开右侧面板"
-            >
-              <PanelRightOpen size={14} />
-            </button>
-          )}
-        </div>
+        <button className="kc-side-row" type="button" onClick={() => setSettingsOpen(true)}>
+          <Settings size={13} />
+          <span>设置</span>
+          <span className="kc-side-meta">↑ 24.1k tokens</span>
+        </button>
       </div>
     </div>
   )

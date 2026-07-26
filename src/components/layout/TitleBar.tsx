@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { cn } from '@/utils/cn'
 
 /**
  * 自定义标题栏组件
@@ -28,53 +27,34 @@ export function TitleBar() {
   const handleClose = () => isElectron && window.api.window.close()
 
   return (
-    <div className="titlebar-drag flex h-9 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] select-none">
-      {/* 左侧：应用名称 + 拖拽区域 */}
-      <div className="flex items-center gap-2 pl-4">
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-[var(--brand-primary)]" />
-          <span className="text-xs font-semibold text-[var(--text-secondary)]">KiloCode</span>
-        </div>
-      </div>
-
-      {/* 中间：拖拽区域 */}
-      <div className="flex-1" />
-
-      {/* 右侧：窗口控制按钮 */}
-      <div className="titlebar-no-drag flex items-center">
+    <div className="kc-titlebar titlebar-drag">
+      {/* 右侧：窗口控制按钮（设计稿风格：stroke SVG） */}
+      <div className="kc-window-controls titlebar-no-drag">
         <button
           onClick={handleMinimize}
-          className="flex h-9 w-11 items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+          className="kc-win-btn"
           aria-label="最小化"
         >
-          <svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor">
-            <rect width="10" height="1" />
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+            <path d="M4 8h8" />
           </svg>
         </button>
         <button
           onClick={handleMaximize}
-          className="flex h-9 w-11 items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+          className="kc-win-btn"
           aria-label={maximized ? '还原' : '最大化'}
         >
-          {maximized ? (
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
-              <rect x="2" y="0" width="8" height="8" rx="0.5" />
-              <rect x="0" y="2" width="8" height="8" rx="0.5" />
-            </svg>
-          ) : (
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
-              <rect x="0.5" y="0.5" width="9" height="9" rx="0.5" />
-            </svg>
-          )}
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+            <rect x="4" y="4" width="8" height="8" rx="1" />
+          </svg>
         </button>
         <button
           onClick={handleClose}
-          className="flex h-9 w-11 items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--error)] hover:text-white transition-colors"
+          className="kc-win-btn kc-win-close"
           aria-label="关闭"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <line x1="0" y1="0" x2="10" y2="10" />
-            <line x1="10" y1="0" x2="0" y2="10" />
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+            <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
           </svg>
         </button>
       </div>

@@ -2,7 +2,6 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useTokenUsageStore, formatTokenCount, formatCost } from '@/stores/tokenUsageStore'
 import { IndexStatus } from '@/components/common/IndexStatus'
-import { cn } from '@/utils/cn'
 import { Circle, Wifi, WifiOff, RefreshCw, Coins } from 'lucide-react'
 
 /**
@@ -12,7 +11,7 @@ import { Circle, Wifi, WifiOff, RefreshCw, Coins } from 'lucide-react'
  */
 export function StatusBar() {
   const { currentMode, currentModel } = useSessionStore()
-  const { connected, reconnecting, reconnect } = useConnectionStore()
+  const { connected, reconnecting, setReconnecting } = useConnectionStore()
   const { usage } = useTokenUsageStore()
 
   const hasUsage = usage.total > 0
@@ -37,7 +36,7 @@ export function StatusBar() {
             <>
               <WifiOff size={10} className="text-[var(--error)]" />
               <button
-                onClick={reconnect}
+                onClick={() => setReconnecting(true)}
                 className="text-[var(--error)] hover:underline"
               >
                 未连接（点击重连）

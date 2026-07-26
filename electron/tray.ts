@@ -1,5 +1,4 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
-import { join } from 'path'
 
 /**
  * 系统托盘管理

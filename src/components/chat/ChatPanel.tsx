@@ -1,19 +1,33 @@
 import { useSessionStore } from '@/stores/sessionStore'
 import { UserMessage } from './UserMessage'
 import { AssistantMessage } from './AssistantMessage'
-import { ToolCallCard } from './ToolCallCard'
-import { MessageSquare } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
+import { Bug, Code2, Layers3, ScanSearch, Sparkles } from 'lucide-react'
+
+const EMPTY_PROMPTS = [
+  { icon: Code2, label: '编写代码', prompt: '帮我实现...' },
+  { icon: Bug, label: '修复 Bug', prompt: '帮我调试...' },
+  { icon: ScanSearch, label: '代码审查', prompt: '审查这段代码...' },
+  { icon: Layers3, label: '架构设计', prompt: '设计架构方案...' },
+]
 
 /**
  * 对话面板
  *
  * 显示消息流：用户消息 + AI回复 + 工具调用
  * Codex风格：消息流式展示，自动滚动到底部
+ * 支持从任意消息分叉会话
  */
 export function ChatPanel() {
-  const { messages, isStreaming, streamingContent } = useSessionStore()
+  const { messages, isStreaming, streamingContent, activeSessionId, forkSession } = useSessionStore()
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  /** 分叉会话回调 */
+  const handleFork = useCallback((messageId: string) => {
+    if (activeSessionId) {
+      forkSession(activeSessionId, messageId)
+    }
+  }, [activeSessionId, forkSession])
 
   // 自动滚动到底部
   useEffect(() => {
@@ -24,21 +38,27 @@ export function ChatPanel() {
 
   // 空状态
   if (messages.length === 0 && !isStreaming) {
-    return <EmptyState />
+    return (
+      <div className="kc-chat-scroll">
+        <EmptyState />
+      </div>
+    )
   }
 
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-6">
-      <div className="mx-auto max-w-3xl space-y-4">
+    <div ref={scrollRef} className="kc-chat-scroll">
+      <div className="kc-chat-col">
         {messages.map((message) => (
           <div key={message.id}>
             {message.role === 'user' ? (
-              <UserMessage message={message} />
+              <UserMessage message={message} onFork={handleFork} />
             ) : (
               <AssistantMessage
                 content={message.content}
                 toolCalls={message.toolCalls}
                 message={message}
+                messageId={message.id}
+                onFork={handleFork}
               />
             )}
           </div>
@@ -59,29 +79,26 @@ export function ChatPanel() {
 /** 空状态欢迎页 */
 function EmptyState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-4">
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-muted)]">
-        <div className="h-8 w-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
-          <span className="text-lg font-bold text-black">K</span>
-        </div>
+    <div className="kc-empty-state">
+      <div className="kc-empty-brand">
+        <img src="/kilo-logo.svg" alt="" />
       </div>
-      <h2 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">KiloCode</h2>
-      <p className="mb-8 text-sm text-[var(--text-tertiary)]">AI 驱动的编程助手</p>
+      <h2 className="kc-empty-title">KiloCode</h2>
+      <p className="kc-empty-subtitle">
+        AI 驱动的编程助手 <span className="kc-empty-status"><Sparkles size={11} /> 随时待命</span>
+      </p>
 
-      {/* 快捷操作建议 */}
-      <div className="grid max-w-md grid-cols-2 gap-2">
-        {[
-          { label: '编写代码', prompt: '帮我实现...' },
-          { label: '修复 Bug', prompt: '帮我调试...' },
-          { label: '代码审查', prompt: '审查这段代码...' },
-          { label: '架构设计', prompt: '设计架构方案...' },
-        ].map((item) => (
+      <div className="kc-empty-prompts">
+        {EMPTY_PROMPTS.map((item) => (
           <button
             key={item.label}
-            className="rounded-lg border border-[var(--border)] px-3 py-2 text-left transition-colors hover:border-[var(--brand-primary)] hover:bg-[var(--brand-subtle)]"
+            className="kc-prompt-card"
           >
-            <p className="text-xs font-medium text-[var(--text-secondary)]">{item.label}</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">{item.prompt}</p>
+            <span className="kc-prompt-icon"><item.icon size={16} /></span>
+            <span className="kc-prompt-copy">
+              <span className="kc-prompt-title">{item.label}</span>
+              <span className="kc-prompt-caption">{item.prompt}</span>
+            </span>
           </button>
         ))}
       </div>

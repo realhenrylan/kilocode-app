@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KiloCode Desktop — Codex 风格重设计</title>
+<style>
+  :root {
+    /* ===== 新设计 Token:暖炭灰体系(对标 Codex 桌面端) ===== */
+    --bg-base: #1B1A18;          /* 主背景:暖炭灰,非纯黑 */
+    --bg-sidebar: #161512;       /* 侧边栏:比主背景暗一档,靠明度差分区 */
+    --bg-raised: #232220;        /* 浮起表面:Composer、卡片 */
+    --bg-raised-2: #2A2926;      /* 二级浮起:用户消息、hover */
+    --bg-inset: #141311;         /* 内嵌:代码块、终端 */
+    --border-hairline: rgba(255,255,255,0.07);   /* 组件级描边(轻) */
+    --border-strong: rgba(255,255,255,0.12);     /* Composer 强调边 */
+    --divider: rgba(255,255,255,0.10);           /* 区域结构线(清晰可见) */
+    --text-1: #ECEBE8;
+    --text-2: #9C9A93;
+    --text-3: #73716A;                           /* 提示/占位:略提亮,兼顾可读 */
+    --brand: #FFD700;
+    --brand-dim: #E8C400;
+    --ok: #7DBB6E;
+    --err: #E5716A;
+    --mono: "Cascadia Code", Consolas, "JetBrains Mono", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0F0E0C;
+    color: var(--text-1);
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 48px 32px 96px;
+  }
+  .doc { max-width: 1340px; margin: 0 auto; }
+  .doc-header { margin-bottom: 40px; }
+  .doc-header h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .doc-header .sub { color: var(--text-2); margin-top: 8px; max-width: 760px; }
+  .doc-header .tag { display: inline-block; font-size: 11px; color: #000; background: var(--brand); border-radius: 4px; padding: 2px 8px; font-weight: 600; margin-bottom: 12px; letter-spacing: 0.04em; }
+  .section { margin-top: 56px; }
+  .section > h2 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .section > .desc { color: var(--text-2); font-size: 13px; margin-bottom: 20px; max-width: 820px; }
+  .frame {
+    border: 1px solid var(--divider);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--bg-base);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .frame-caption { font-size: 12px; color: var(--text-3); margin-top: 10px; }
+
+  /* ============ APP MOCKUP(无重叠 · 发丝线分区) ============ */
+  .app { display: flex; flex-direction: column; height: 856px; background: var(--bg-base); color: var(--text-1); font-size: 13px; }
+  .app * { flex-shrink: 0; }
+
+  /* --- 标题栏:完整一行,底部发丝线,不与任何内容重叠 --- */
+  .titlebar {
+    height: 38px; flex: 0 0 38px;
+    display: flex; align-items: center; justify-content: flex-end; gap: 2px;
+    padding: 0 6px; border-bottom: 1px solid var(--divider);
+    -webkit-app-region: drag;
+  }
+  .win-btn { width: 42px; height: 30px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 12px; border-radius: 6px; }
+  .win-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-2); }
+  .win-btn.close:hover { background: var(--err); color: #fff; }
+
+  .app-body { display: flex; flex: 1 1 0; min-height: 0; }
+
+  /* --- 侧边栏:独立一列,右侧发丝线,三块分区清晰 --- */
+  .sidebar { width: 256px; flex: 0 0 256px; background: var(--bg-sidebar); border-right: 1px solid var(--divider); display: flex; flex-direction: column; }
+  .side-nav { padding: 12px 10px 12px; border-bottom: 1px solid var(--divider); }
+  .side-logo { display: flex; align-items: center; gap: 9px; padding: 2px 8px 14px; }
+  .logo-mark { width: 22px; height: 22px; flex: 0 0 22px; }
+  .logo-mark svg { width: 100%; height: 100%; display: block; }
+  .side-logo span { font-weight: 600; font-size: 13.5px; letter-spacing: -0.01em; }
+  .new-task {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-raised); border: 1px solid var(--border-hairline); border-radius: 10px;
+    color: var(--text-1); padding: 9px 12px; font-size: 13px; width: 100%; margin-bottom: 8px; cursor: pointer;
+    transition: background .15s ease;
+  }
+  .new-task:hover { background: var(--bg-raised-2); }
+  .new-task svg { color: var(--text-2); }
+  .side-search { display: flex; align-items: center; gap: 8px; color: var(--text-3); padding: 9px 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-hairline); border-radius: 10px; }
+  .side-list { flex: 1 1 0; min-height: 0; overflow: hidden; padding: 6px 10px 8px; }
+  .side-label { font-size: 11px; color: var(--text-3); padding: 10px 8px 5px; letter-spacing: 0.02em; }
+  .side-item { display: flex; align-items: center; padding: 7px 10px; border-radius: 8px; color: var(--text-2); white-space: nowrap; overflow: hidden; transition: background .12s ease; }
+  .side-item .t { overflow: hidden; text-overflow: ellipsis; }
+  .side-item.active { background: rgba(255,255,255,0.07); color: var(--text-1); }
+  .side-item:hover:not(.active) { background: rgba(255,255,255,0.03); }
+  .side-bottom { flex: 0 0 auto; border-top: 1px solid var(--divider); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .side-row { display: flex; align-items: center; gap: 9px; color: var(--text-2); padding: 7px 10px; border-radius: 8px; font-size: 12.5px; }
+  .side-row:hover { background: rgba(255,255,255,0.03); }
+  .side-row .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: 0 0 6px; margin-left: auto; }
+  .side-row .meta { margin-left: auto; color: var(--text-3); font-size: 11.5px; }
+
+  /* --- 主区:独立一列,顶部工具栏发丝线与内容分离 --- */
+  .main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+  .main-top { display: flex; align-items: center; height: 46px; flex: 0 0 46px; padding: 0 16px; border-bottom: 1px solid var(--divider); }
+  .crumb { display: flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 12.5px; overflow: hidden; white-space: nowrap; }
+  .crumb b { color: var(--text-2); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+  .top-actions { margin-left: auto; display: flex; gap: 2px; flex: 0 0 auto; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-3); transition: background .12s ease, color .12s ease; }
+  .icon-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-2); }
+
+  .chat-scroll { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; justify-content: center; }
+  .chat-col { width: 100%; max-width: 720px; padding: 28px 24px 12px; display: flex; flex-direction: column; gap: 22px; }
+
+  .msg-user { align-self: flex-end; max-width: 82%; background: var(--bg-raised-2); border: 1px solid var(--border-hairline); border-radius: 16px; border-bottom-right-radius: 6px; padding: 10px 16px; color: var(--text-1); }
+  .msg-ai { color: var(--text-1); line-height: 1.7; }
+  .msg-ai p + p { margin-top: 10px; }
+  .msg-ai .muted { color: var(--text-2); }
+  .inline-code { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 5px; }
+
+  .tool-card { border: 1px solid var(--border-hairline); border-radius: 10px; background: rgba(255,255,255,0.02); overflow: hidden; margin: 10px 0; }
+  .tool-row { display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 12.5px; color: var(--text-2); }
+  .tool-row .name { font-family: var(--mono); color: var(--text-1); font-size: 12px; }
+  .tool-row .status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-3); }
+  .tool-row .status .ok-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: 0 0 6px; }
+  .tool-row + .tool-row { border-top: 1px solid var(--border-hairline); }
+  .chev { color: var(--text-3); font-size: 10px; }
+
+  .codeblock { background: var(--bg-inset); border: 1px solid var(--border-hairline); border-radius: 10px; margin: 10px 0; overflow: hidden; }
+  .codeblock .cb-head { display: flex; align-items: center; padding: 7px 12px; font-size: 11.5px; color: var(--text-3); font-family: var(--mono); border-bottom: 1px solid var(--border-hairline); }
+  .codeblock .cb-head .copy { margin-left: auto; }
+  .codeblock pre { padding: 12px 14px; font-family: var(--mono); font-size: 12px; line-height: 1.7; color: #C8C6BE; overflow: hidden; }
+  .tk-kw { color: #C792EA; } .tk-fn { color: #82AAFF; } .tk-str { color: #C3E88D; } .tk-cm { color: #5C6370; }
+
+  .stream { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13px; }
+  .stream .shimmer {
+    background: linear-gradient(90deg, var(--text-3) 30%, var(--brand) 50%, var(--text-3) 70%);
+    background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* --- Composer:视觉主角,内层用发丝线切分输入区与控件区 --- */
+  .composer-wrap { display: flex; justify-content: center; padding: 10px 24px 6px; }
+  .composer { width: 100%; max-width: 720px; background: var(--bg-raised); border: 1px solid var(--border-strong); border-radius: 18px; padding: 14px 14px 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+  .composer .input { color: var(--text-3); font-size: 13.5px; padding: 2px 6px 12px; min-height: 38px; }
+  .composer .input.filled { color: var(--text-1); }
+  .composer-bar { display: flex; align-items: center; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border-hairline); }
+  .pill { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-hairline); border-radius: 999px; padding: 5px 12px; font-size: 12px; color: var(--text-2); transition: background .12s ease; }
+  .pill:hover { background: rgba(255,255,255,0.07); }
+  .pill b { color: var(--text-1); font-weight: 500; }
+  .pill .cv { font-size: 9px; color: var(--text-3); }
+  .composer-bar .right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .send { width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: #000; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(255,215,0,0.25); }
+  .send.idle { background: rgba(255,255,255,0.08); color: var(--text-3); box-shadow: none; }
+  .composer-hint { display: flex; justify-content: center; gap: 16px; font-size: 11px; color: var(--text-3); padding: 8px 0 14px; }
+
+  /* --- 工作面板抽屉:独立一列,左侧发丝线 --- */
+  .drawer { width: 440px; flex: 0 0 440px; background: #1F1E1B; border-left: 1px solid var(--divider); display: flex; flex-direction: column; }
+  .drawer-head { display: flex; align-items: center; padding: 9px 12px; gap: 8px; height: 46px; flex: 0 0 46px; border-bottom: 1px solid var(--divider); }
+  .seg { display: flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border-hairline); border-radius: 8px; padding: 2px; }
+  .seg .seg-item { padding: 5px 13px; border-radius: 6px; font-size: 12px; color: var(--text-3); transition: background .12s ease, color .12s ease; }
+  .seg .seg-item.on { background: var(--bg-raised-2); color: var(--text-1); }
+  .drawer-body { flex: 1 1 0; min-height: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  .diff-file { border: 1px solid var(--border-hairline); border-radius: 10px; overflow: hidden; }
+  .diff-file .df-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--text-2); background: rgba(255,255,255,0.02); }
+  .df-head .add { color: var(--ok); } .df-head .del { color: var(--err); }
+  .diff-lines { font-family: var(--mono); font-size: 11.5px; line-height: 1.75; }
+  .dl { display: flex; padding: 0 12px; white-space: pre; }
+  .dl .ln { width: 30px; color: var(--text-3); opacity: 0.5; flex: 0 0 30px; }
+  .dl.add { background: rgba(125,187,110,0.10); color: #A9D8A0; }
+  .dl.del { background: rgba(229,113,106,0.10); color: #E9A19C; }
+  .dl.ctx { color: var(--text-2); }
+
+  /* ============ 浅色主题 ============ */
+  .app.light {
+    --bg-base: #FAF9F6; --bg-sidebar: #F1EFE9; --bg-raised: #FFFFFF; --bg-raised-2: #EDEBE4;
+    --bg-inset: #F4F2EC; --border-hairline: rgba(30,25,10,0.08); --border-strong: rgba(30,25,10,0.12);
+    --divider: rgba(30,25,10,0.10);
+    --text-1: #23211C; --text-2: #6E6B62; --text-3: #A09D93;
+    --brand: #B8860B;
+    background: var(--bg-base);
+  }
+  .app.light .send { background: #23211C; color: #FFD700; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .app.light .composer { box-shadow: 0 8px 28px rgba(60,50,20,0.10); }
+  .app.light .new-task { background: #fff; }
+  .app.light .new-task:hover { background: #EDEBE4; }
+  .app.light .side-search { background: rgba(30,25,10,0.03); }
+  .app.light .codeblock pre { color: #45423A; }
+  .app.light .inline-code { background: rgba(30,25,10,0.06); }
+  .app.light .tk-kw { color: #9C27B0; } .app.light .tk-fn { color: #1565C0; } .app.light .tk-str { color: #2E7D32; }
+
+  /* ============ 规格区 ============ */
+  .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .spec-card { background: #17161380; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 18px 20px; }
+  .spec-card h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 12px; }
+  table.tokens { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.tokens th { text-align: left; color: var(--text-3); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11.5px; }
+  table.tokens td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-2); vertical-align: middle; }
+  table.tokens td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--text-1); }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 8px; border: 1px solid rgba(255,255,255,0.12); }
+  .rule-list { list-style: none; }
+  .rule-list li { padding: 7px 0 7px 22px; position: relative; color: var(--text-2); font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .rule-list li::before { content: ""; position: absolute; left: 2px; top: 14px; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+  .rule-list li b { color: var(--text-1); font-weight: 600; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; overflow: hidden; font-size: 13px; }
+  .compare > div { padding: 14px 18px; }
+  .compare .col-head { font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; padding: 10px 18px; }
+  .compare .old { background: rgba(229,113,106,0.05); border-right: 1px solid rgba(255,255,255,0.07); }
+  .compare .new { background: rgba(125,187,110,0.05); }
+  .compare .old .col-head { color: var(--err); } .compare .new .col-head { color: var(--ok); }
+  .compare .cell { color: var(--text-2); border-top: 1px solid rgba(255,255,255,0.05); }
+  .note { background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.18); border-radius: 10px; padding: 12px 16px; color: var(--text-2); font-size: 13px; margin-bottom: 4px; }
+  .note b { color: var(--text-1); }
+
+  /* ============ 组件状态规格 ============ */
+  .states-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+  .state-card { background: #17161380; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; overflow: hidden; }
+  .state-title { font-size: 12.5px; font-weight: 600; padding: 13px 16px 0; }
+  .state-sub { font-size: 11px; color: var(--text-3); padding: 2px 16px 0; }
+  .demo-box { margin: 12px; background: var(--bg-base); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+  .demo-box.side { background: var(--bg-sidebar); }
+  .demo-box.raised { background: var(--bg-raised); }
+  .demo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .demo-tag { font-size: 10px; color: var(--text-3); margin-left: auto; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <div class="doc-header">
+    <span class="tag">DESIGN SPEC · V2.3</span>
+    <h1>KiloCode Desktop — Codex 风格重设计</h1>
+    <p class="sub">围绕 Codex 桌面端的三条视觉基因:<b style="color:#ECEBE8">暖炭灰底色、结构线分区、Composer 是唯一主角</b>。品牌黄从"到处都是"收敛为三处签名式出场,Cyan 从体系中移除。V2.3 修订:接入 KiloCode 官方 logo,并修复浅色主题下品牌字样发白的问题。</p>
+  </div>
+
+  <div class="note" style="margin-top:24px;">
+    <b>V2.3 修订</b> · ① 左上角标识换为 <b>KiloCode 官方 logo</b>(亮黄 #F7F569 圆角方块 + 深色 #16161C 像素风 K,依据官方仓库 logo 矢量化,深浅主题通用);② 修复浅色主题下 "KiloCode" 字样发白看不清——根因是 <b>.app 未声明文字色</b>,导致继承了深色主题的 #ECEBE8,已在 .app 补 <b>color: var(--text-1)</b>,浅色下正确落为深色 #23211C。<br>
+    <span style="opacity:0.75">V2.2 沿用:结构线 --divider 0.10 / 组件描边 0.07 两档、圆角 6/8/10/16/18 刻度、窗口控件 SVG 化、第 ④ 节组件状态规格。</span>
+  </div>
+
+  <!-- ============ 对比:问题诊断 ============ -->
+  <div class="section">
+    <h2>为什么现在不像 Codex</h2>
+    <p class="desc">对照现有实现(globals.css / AppShell / Sidebar),五个关键偏差与修正方向:</p>
+    <div class="compare">
+      <div class="old"><div class="col-head">现状问题</div></div>
+      <div class="new"><div class="col-head">重设计方案</div></div>
+      <div class="old cell">纯黑冷底 #0d0d0d + 高对比描边 #333 分区,像 VS Code</div>
+      <div class="new cell">暖炭灰 #1B1A18 体系,取消描边,用明度差分区(侧边栏更暗、卡片更亮)</div>
+      <div class="old cell">品牌黄泛滥:虚线边框、hover、激活项、用户消息背景全是黄</div>
+      <div class="new cell">黄色仅 3 处:Logo、发送按钮、流式 shimmer。激活态一律中性灰</div>
+      <div class="old cell">黄 + Cyan 双高饱和 accent 互相打架</div>
+      <div class="new cell">移除 Cyan。链接、进度等用中性色 + 下划线表达</div>
+      <div class="old cell">ModeSelector / ModelSelector / ProjectPicker 全堆在侧边栏</div>
+      <div class="new cell">模式与模型收进 Composer 底部胶囊(Codex 标志性布局),侧边栏只留会话</div>
+      <div class="old cell">右面板 400px 常驻 + 28px 状态栏,挤压对话区</div>
+      <div class="new cell">右面板改为按需唤出的工作抽屉;状态栏取消,状态收进侧边栏底部</div>
+    </div>
+  </div>
+
+  <!-- ============ 主界面 ============ -->
+  <div class="section">
+    <h2>① 主界面 — 会话进行中(深色 · 默认)</h2>
+    <p class="desc">标题栏为完整一行,三栏顶部对齐、互不重叠。侧栏以发丝线与主区相隔,工具栏以横向发丝线与对话区相隔。对话列居中(max-width 720px),消息卡片化;Composer 浮起、18px 大圆角,模式/模型胶囊内置,输入区与控件区用一条发丝线分开。</p>
+    <div class="frame">
+      <div class="app">
+        <!-- 标题栏:完整一行,不与任何内容重叠 -->
+        <div class="titlebar">
+          <div class="win-btn" title="最小化"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 8h8"/></svg></div>
+          <div class="win-btn" title="最大化"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="4" width="8" height="8" rx="1"/></svg></div>
+          <div class="win-btn close" title="关闭"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></div>
+        </div>
+        <div class="app-body">
+          <!-- 侧边栏 -->
+          <div class="sidebar">
+            <div class="side-nav">
+              <div class="side-logo"><div class="logo-mark"><svg viewBox="0 0 24 24" role="img" aria-label="KiloCode"><rect width="24" height="24" rx="6" fill="#F7F569"/><path fill="#16161C" d="M3 3h6v3H3zM15 3h6v3h-6zM3 6h6v3H3zM12 6h6v3h-6zM3 9h12v3H3zM3 12h12v3H3zM3 15h6v3H3zM12 15h6v3h-6zM3 18h6v3H3zM15 18h6v3h-6z"/></svg></div><span>KiloCode</span></div>
+              <button class="new-task"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>新建任务</button>
+              <div class="side-search"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M13 13l-2.5-2.5"/></svg>搜索会话</div>
+            </div>
+            <div class="side-list">
+              <div class="side-label">今天</div>
+              <div class="side-item active"><span class="t">重构 sessionStore 的持久化逻辑</span></div>
+              <div class="side-item"><span class="t">修复 Composer 高度自适应 bug</span></div>
+              <div class="side-item"><span class="t">为 DiffViewer 添加折叠功能</span></div>
+              <div class="side-label">昨天</div>
+              <div class="side-item"><span class="t">Electron 托盘菜单国际化</span></div>
+              <div class="side-item"><span class="t">审查 PR #142:权限弹窗改版</span></div>
+              <div class="side-item"><span class="t">优化 629 模型列表渲染性能</span></div>
+              <div class="side-label">过去 7 天</div>
+              <div class="side-item"><span class="t">编写 MCP 服务器接入文档</span></div>
+              <div class="side-item"><span class="t">Token 用量统计图表方案</span></div>
+            </div>
+            <div class="side-bottom">
+              <div class="side-row"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5l6-3 6 3v6l-6 3-6-3V5z"/></svg>kilocode-app<span class="dot"></span></div>
+              <div class="side-row"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.5 3.5L5 5M11 11l1.5 1.5M12.5 3.5L11 5M5 11l-1.5 1.5"/></svg>设置<span class="meta">↑ 24.1k tokens</span></div>
+            </div>
+          </div>
+          <!-- 主区 -->
+          <div class="main">
+            <div class="main-top">
+              <div class="crumb"><b>重构 sessionStore 的持久化逻辑</b><span>·</span><span>分叉自「自动恢复」</span></div>
+              <div class="top-actions">
+                <div class="icon-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3v10M2.5 3h11c.6 0 1 .4 1 1v8c0 .6-.4 1-1 1h-11c-.6 0-1-.4-1-1V4c0-.6.4-1 1-1z"/></svg></div>
+                <div class="icon-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 3v10M2.5 3h11c.6 0 1 .4 1 1v8c0 .6-.4 1-1 1h-11c-.6 0-1-.4-1-1V4c0-.6.4-1 1-1z"/></svg></div>
+              </div>
+            </div>
+            <div class="chat-scroll"><div class="chat-col">
+              <div class="msg-user">把 sessionStore 的 localStorage 持久化改成按会话分片存储,避免超过 5MB 限制</div>
+              <div class="msg-ai">
+                <p>好的。当前 <span class="inline-code">sessionStore</span> 把全部会话序列化进单个 key,消息一多就会触顶。我先看一下现有 persist 配置,然后按「索引 + 分片」两层结构改造。</p>
+                <div class="tool-card">
+                  <div class="tool-row"><span class="chev">▸</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 1.5H4a1 1 0 00-1 1v11a1 1 0 001 1h8a1 1 0 001-1V5.5L9 1.5z"/></svg>读取<span class="name">src/stores/sessionStore.ts</span><span class="status"><span class="ok-dot"></span>完成</span></div>
+                  <div class="tool-row"><span class="chev">▸</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M11 2l3 3-8.5 8.5H2.5V10.5L11 2z"/></svg>编辑<span class="name">src/stores/sessionStore.ts</span><span class="status"><span class="ok-dot"></span>+38 −12</span></div>
+                </div>
+                <p>核心改动:每个会话独立存储为 <span class="inline-code">kc-session:&lt;id&gt;</span>,主 key 只保留轻量索引:</p>
+                <div class="codeblock">
+                  <div class="cb-head">sessionStore.ts<span class="copy">复制</span></div>
+                  <pre><span class="tk-cm">// 索引与分片分离,惰性加载历史会话</span>
+<span class="tk-kw">const</span> <span class="tk-fn">shardedStorage</span> = {
+  <span class="tk-fn">getItem</span>: (id: <span class="tk-kw">string</span>) =&gt; localStorage.getItem(<span class="tk-str">`kc-session:${id}`</span>),
+  <span class="tk-fn">setItem</span>: (id: <span class="tk-kw">string</span>, v: <span class="tk-kw">string</span>) =&gt; localStorage.setItem(<span class="tk-str">`kc-session:${id}`</span>, v),
+}</pre>
+                </div>
+              </div>
+              <div class="stream"><span class="shimmer">正在更新会话索引的迁移逻辑…</span></div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">描述你的任务,@ 引用文件,/ 唤起命令</div>
+                <div class="composer-bar">
+                  <div class="icon-btn"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg></div>
+                  <div class="pill"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4L1.5 8 5 12M11 4l3.5 4L11 12"/></svg><b>Code</b><span class="cv">▾</span></div>
+                  <div class="pill"><b>Claude Sonnet 4.5</b><span class="cv">▾</span></div>
+                  <div class="right">
+                    <div class="icon-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="6" y="1.5" width="4" height="8" rx="2"/><path d="M3.5 7.5a4.5 4.5 0 009 0M8 12v2.5"/></svg></div>
+                    <div class="send"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7"/></svg></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="composer-hint"><span>KiloCode 可能出错,请核查重要信息</span><span style="opacity:0.7">本次会话 ¥0.42 · 18.6k tokens</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="frame-caption">1280 × 856 · 标题栏 38px / 工具栏 46px / 抽屉头 46px 三处横向发丝线对齐;侧栏 256px、抽屉 440px 竖向发丝线相隔;对话列居中 720px。</p>
+  </div>
+
+  <!-- ============ 工作面板 ============ -->
+  <div class="section">
+    <h2>② 工作抽屉 — Diff 审查(按需唤出)</h2>
+    <p class="desc">终端 / 差异 / 浏览器 / 文件不再常驻。AI 产生文件改动或运行命令时,右侧滑出 440px 工作抽屉,顶部分段控件切换;抽屉以左侧发丝线与主区相隔,头部以横向发丝线与内容相隔,无改动时自动收起。</p>
+    <div class="frame">
+      <div class="app" style="height: 600px;">
+        <div class="titlebar">
+          <div class="win-btn" title="最小化"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 8h8"/></svg></div>
+          <div class="win-btn" title="最大化"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="4" width="8" height="8" rx="1"/></svg></div>
+          <div class="win-btn close" title="关闭"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></div>
+        </div>
+        <div class="app-body">
+          <div class="sidebar" style="width:216px;flex-basis:216px;">
+            <div class="side-nav">
+              <div class="side-logo"><div class="logo-mark"><svg viewBox="0 0 24 24" role="img" aria-label="KiloCode"><rect width="24" height="24" rx="6" fill="#F7F569"/><path fill="#16161C" d="M3 3h6v3H3zM15 3h6v3h-6zM3 6h6v3H3zM12 6h6v3h-6zM3 9h12v3H3zM3 12h12v3H3zM3 15h6v3H3zM12 15h6v3h-6zM3 18h6v3H3zM15 18h6v3h-6z"/></svg></div><span>KiloCode</span></div>
+              <button class="new-task"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>新建任务</button>
+            </div>
+            <div class="side-list">
+              <div class="side-label">今天</div>
+              <div class="side-item active"><span class="t">重构 sessionStore 持久化</span></div>
+              <div class="side-item"><span class="t">修复 Composer 高度 bug</span></div>
+            </div>
+            <div class="side-bottom">
+              <div class="side-row"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5l6-3 6 3v6l-6 3-6-3V5z"/></svg>kilocode-app<span class="dot"></span></div>
+            </div>
+          </div>
+          <div class="main">
+            <div class="main-top">
+              <div class="crumb"><b>重构 sessionStore 持久化</b></div>
+            </div>
+            <div class="chat-scroll"><div class="chat-col" style="max-width:560px;">
+              <div class="msg-user" style="font-size:12.5px;">改完后把 diff 给我看一下</div>
+              <div class="msg-ai" style="font-size:12.5px;">
+                <p>已完成分片存储改造,右侧是 <span class="inline-code">sessionStore.ts</span> 的完整改动(+38 −12),重点看 <span class="muted">migrate 函数对旧数据的兼容处理</span>。</p>
+              </div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer" style="max-width:560px;">
+                <div class="input" style="min-height:22px;">回复…</div>
+                <div class="composer-bar">
+                  <div class="pill"><b>Code</b><span class="cv">▾</span></div>
+                  <div class="right"><div class="send idle"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7"/></svg></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="drawer">
+            <div class="drawer-head">
+              <div class="seg">
+                <div class="seg-item">终端</div>
+                <div class="seg-item on">差异</div>
+                <div class="seg-item">浏览器</div>
+                <div class="seg-item">文件</div>
+              </div>
+              <div class="icon-btn" style="margin-left:auto;">✕</div>
+            </div>
+            <div class="drawer-body">
+              <div class="diff-file">
+                <div class="df-head"><span class="chev">▾</span>src/stores/sessionStore.ts<span style="margin-left:auto;"></span><span class="add">+38</span><span class="del">−12</span></div>
+                <div class="diff-lines">
+                  <div class="dl ctx"><span class="ln">41</span>  persist(</div>
+                  <div class="dl del"><span class="ln">42</span>-   { name: 'kilocode-session' }</div>
+                  <div class="dl add"><span class="ln">42</span>+   {</div>
+                  <div class="dl add"><span class="ln">43</span>+     name: 'kc-session-index',</div>
+                  <div class="dl add"><span class="ln">44</span>+     storage: shardedStorage,</div>
+                  <div class="dl add"><span class="ln">45</span>+     partialize: (s) =&gt; toIndex(s),</div>
+                  <div class="dl add"><span class="ln">46</span>+   }</div>
+                  <div class="dl ctx"><span class="ln">47</span>  )</div>
+                  <div class="dl ctx"><span class="ln">48</span></div>
+                  <div class="dl add"><span class="ln">49</span>+ /** 旧版单 key 数据迁移 */</div>
+                  <div class="dl add"><span class="ln">50</span>+ function migrateLegacy() {</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="frame-caption">抽屉与主背景同色系但更亮一档(#1F1E1B),左侧 1px 发丝线分隔;分段控件替代原 Tab 行;抽屉打开时对话列自动收窄。</p>
+  </div>
+
+  <!-- ============ 浅色主题 ============ -->
+  <div class="section">
+    <h2>③ 浅色主题 — 暖纸白</h2>
+    <p class="desc">浅色不是深色的简单反转:底色用暖纸白 #FAF9F6,品牌黄加深为 #B8860B 保证对比度;发送按钮反转为墨底黄箭头。发丝线用低透明暖色,分区逻辑与深色完全一致。</p>
+    <div class="frame">
+      <div class="app light" style="height: 520px;">
+        <div class="titlebar">
+          <div class="win-btn" title="最小化"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 8h8"/></svg></div>
+          <div class="win-btn" title="最大化"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="4" width="8" height="8" rx="1"/></svg></div>
+          <div class="win-btn close" title="关闭"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></div>
+        </div>
+        <div class="app-body">
+          <div class="sidebar" style="width:216px;flex-basis:216px;">
+            <div class="side-nav">
+              <div class="side-logo"><div class="logo-mark"><svg viewBox="0 0 24 24" role="img" aria-label="KiloCode"><rect width="24" height="24" rx="6" fill="#F7F569"/><path fill="#16161C" d="M3 3h6v3H3zM15 3h6v3h-6zM3 6h6v3H3zM12 6h6v3h-6zM3 9h12v3H3zM3 12h12v3H3zM3 15h6v3H3zM12 15h6v3h-6zM3 18h6v3H3zM15 18h6v3h-6z"/></svg></div><span>KiloCode</span></div>
+              <button class="new-task"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>新建任务</button>
+            </div>
+            <div class="side-list">
+              <div class="side-label">今天</div>
+              <div class="side-item active"><span class="t">重构 sessionStore 持久化</span></div>
+              <div class="side-item"><span class="t">修复 Composer 高度 bug</span></div>
+            </div>
+            <div class="side-bottom">
+              <div class="side-row"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5l6-3 6 3v6l-6 3-6-3V5z"/></svg>kilocode-app<span class="dot"></span></div>
+            </div>
+          </div>
+          <div class="main">
+            <div class="main-top">
+              <div class="crumb"><b>重构 sessionStore 持久化</b></div>
+            </div>
+            <div class="chat-scroll"><div class="chat-col">
+              <div class="msg-user" style="font-size:12.5px;">帮我看看这个类型错误</div>
+              <div class="msg-ai" style="font-size:12.5px;">
+                <p>这个错误出在 <span class="inline-code">FileAttachment</span> 的联合类型收窄 —— <span class="muted">isBase64 为 true 时 content 应为 string 而非 ArrayBuffer。</span></p>
+              </div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input" style="min-height:22px;">描述你的任务,@ 引用文件,/ 唤起命令</div>
+                <div class="composer-bar">
+                  <div class="pill"><b>Ask</b><span class="cv">▾</span></div>
+                  <div class="pill"><b>GPT-5.2</b><span class="cv">▾</span></div>
+                  <div class="right"><div class="send"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7"/></svg></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="frame-caption">浅色主题下品牌黄以「深金 #B8860B」承担文本级强调,#FFD700 只保留在 Logo 与发送按钮内;发丝线透明度调低以保持干净。</p>
+  </div>
+
+  <!-- ============ 组件状态规格 ============ -->
+  <div class="section">
+    <h2>④ 关键组件状态(交互规格)</h2>
+    <p class="desc">设计系统不止静态稿。每个可交互组件的默认 / 悬停 / 激活 / 聚焦态在此定格,前端按此实现可保证 95%+ 一致性。所有聚焦态一律用中性提亮,不引入品牌黄。</p>
+    <div class="states-grid">
+      <div class="state-card">
+        <div class="state-title">侧边栏会话条目</div>
+        <div class="state-sub">默认 / 悬停 / 激活 · 激活靠明度,不用彩色</div>
+        <div class="demo-box side">
+          <div class="demo-row"><div class="side-item" style="flex:1;"><span class="t">默认 · Token 用量统计</span></div></div>
+          <div class="demo-row"><div class="side-item" style="flex:1;background:rgba(255,255,255,0.03);"><span class="t">悬停 · 审查 PR #142</span></div><span class="demo-tag">bg 0.03</span></div>
+          <div class="demo-row"><div class="side-item active" style="flex:1;"><span class="t">激活 · 重构 sessionStore</span></div><span class="demo-tag">bg 0.07</span></div>
+        </div>
+      </div>
+      <div class="state-card">
+        <div class="state-title">新建任务按钮</div>
+        <div class="state-sub">默认 / 悬停 · 实底 + hairline,去虚线</div>
+        <div class="demo-box side">
+          <button class="new-task"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>默认</button>
+          <button class="new-task" style="background:var(--bg-raised-2);"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>悬停</button>
+        </div>
+      </div>
+      <div class="state-card">
+        <div class="state-title">模式 / 模型胶囊</div>
+        <div class="state-sub">默认 / 悬停 · 1px 描边更立体</div>
+        <div class="demo-box raised">
+          <div class="demo-row"><div class="pill"><b>Code</b><span class="cv">▾</span></div><div class="pill"><b>Claude Sonnet 4.5</b><span class="cv">▾</span></div><span class="demo-tag">默认</span></div>
+          <div class="demo-row"><div class="pill" style="background:rgba(255,255,255,0.07);"><b>Code</b><span class="cv">▾</span></div><span class="demo-tag">悬停 bg 0.07</span></div>
+        </div>
+      </div>
+      <div class="state-card">
+        <div class="state-title">发送按钮</div>
+        <div class="state-sub">空闲 / 可发送 · 品牌黄唯一的按钮态</div>
+        <div class="demo-box raised">
+          <div class="demo-row">
+            <div class="send idle"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7"/></svg></div><span class="demo-tag">空闲 · 灰</span>
+          </div>
+          <div class="demo-row">
+            <div class="send"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7"/></svg></div><span class="demo-tag">可发送 · 品牌黄 + 柔光</span>
+          </div>
+        </div>
+      </div>
+      <div class="state-card">
+        <div class="state-title">Composer 输入框</div>
+        <div class="state-sub">默认 / 聚焦 · 聚焦 = 中性提亮,不用黄</div>
+        <div class="demo-box">
+          <div class="composer" style="max-width:none;"><div class="input" style="min-height:20px;padding-bottom:4px;">默认</div></div>
+          <div class="composer" style="max-width:none;border-color:rgba(255,255,255,0.22);box-shadow:0 0 0 3px rgba(255,255,255,0.06),0 8px 32px rgba(0,0,0,0.35);"><div class="input" style="min-height:20px;padding-bottom:4px;color:var(--text-1);">聚焦</div></div>
+        </div>
+      </div>
+      <div class="state-card">
+        <div class="state-title">分段控件 &amp; 状态点</div>
+        <div class="state-sub">抽屉 Tab · 工具运行状态</div>
+        <div class="demo-box">
+          <div class="demo-row">
+            <div class="seg"><div class="seg-item">终端</div><div class="seg-item on">差异</div><div class="seg-item">文件</div></div>
+          </div>
+          <div class="demo-row" style="gap:14px;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3);"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block;"></span>完成</span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3);"><span style="width:6px;height:6px;border-radius:50%;background:var(--err);display:inline-block;"></span>失败</span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3);"><span style="width:6px;height:6px;border-radius:50%;background:var(--text-3);display:inline-block;"></span>等待</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Token 规格 ============ -->
+  <div class="section">
+    <h2>⑤ 设计 Token(可直接替换 globals.css)</h2>
+    <p class="desc">全部映射到现有 CSS 变量名,前端零学习成本迁移。V2.1 新增分隔线 Token。</p>
+    <div class="spec-grid">
+      <div class="spec-card">
+        <h3>深色 · 背景与表面</h3>
+        <table class="tokens">
+          <tr><th>变量</th><th>新值</th><th>说明</th></tr>
+          <tr><td>--bg-primary</td><td><span class="sw" style="background:#1B1A18"></span>#1B1A18</td><td>主背景,暖炭灰</td></tr>
+          <tr><td>--sidebar-bg</td><td><span class="sw" style="background:#161512"></span>#161512</td><td>侧边栏,暗一档</td></tr>
+          <tr><td>--bg-secondary</td><td><span class="sw" style="background:#232220"></span>#232220</td><td>浮起表面 / Composer</td></tr>
+          <tr><td>--bg-hover</td><td><span class="sw" style="background:#2A2926"></span>rgba(255,255,255,0.05)</td><td>悬停,改用透明白</td></tr>
+          <tr><td>--code-bg</td><td><span class="sw" style="background:#141311"></span>#141311</td><td>代码块 / 终端内嵌</td></tr>
+          <tr><td>--border</td><td><span class="sw" style="background:#2c2b28"></span>rgba(255,255,255,0.12)</td><td>仅 Composer 用(strong)</td></tr>
+          <tr><td>--border-subtle</td><td><span class="sw" style="background:#232220"></span>rgba(255,255,255,0.07)</td><td>hairline,工具卡/分隔</td></tr>
+          <tr><td>--divider</td><td><span class="sw" style="background:#26241f"></span>rgba(255,255,255,0.08)</td><td>区域分隔发丝线(新)</td></tr>
+        </table>
+      </div>
+      <div class="spec-card">
+        <h3>深色 · 文本与强调</h3>
+        <table class="tokens">
+          <tr><th>变量</th><th>新值</th><th>说明</th></tr>
+          <tr><td>--text-primary</td><td><span class="sw" style="background:#ECEBE8"></span>#ECEBE8</td><td>暖白,非纯白</td></tr>
+          <tr><td>--text-secondary</td><td><span class="sw" style="background:#9C9A93"></span>#9C9A93</td><td>次级信息</td></tr>
+          <tr><td>--text-tertiary</td><td><span class="sw" style="background:#6C6A63"></span>#6C6A63</td><td>占位 / 提示</td></tr>
+          <tr><td>--brand-primary</td><td><span class="sw" style="background:#FFD700"></span>#FFD700</td><td>仅 Logo / 发送 / shimmer</td></tr>
+          <tr><td>--accent</td><td style="color:#E5716A">删除</td><td>Cyan 移除,链接用下划线</td></tr>
+          <tr><td>--user-msg-bg</td><td><span class="sw" style="background:#2A2926"></span>#2A2926</td><td>中性灰,不再用黄</td></tr>
+          <tr><td>--sidebar-item-active</td><td><span class="sw" style="background:#2e2d2a"></span>rgba(255,255,255,0.07)</td><td>中性,去黄</td></tr>
+        </table>
+      </div>
+      <div class="spec-card">
+        <h3>圆角 · 间距 · 字号</h3>
+        <table class="tokens">
+          <tr><th>元素</th><th>规格</th></tr>
+          <tr><td>标题栏 / 工具栏 / 抽屉头</td><td>38 / 46 / 46px,底部发丝线</td></tr>
+          <tr><td>Composer</td><td>radius 18px · 内边距 14px · 常驻投影</td></tr>
+          <tr><td>用户消息</td><td>radius 16px(右下 6px)· padding 10/16</td></tr>
+          <tr><td>工具卡 / 代码块</td><td>radius 10px · hairline 边</td></tr>
+          <tr><td>胶囊控件</td><td>radius 999px · padding 5/12 · 12px 字 · 1px 边</td></tr>
+          <tr><td>侧边栏条目</td><td>radius 8px · padding 7/10</td></tr>
+          <tr><td>正文 / 次级 / 说明</td><td>13.5px / 12.5px / 11px</td></tr>
+          <tr><td>对话列宽</td><td>max-width 720px 居中</td></tr>
+          <tr><td>侧边栏 / 抽屉</td><td>256px / 440px(按需)</td></tr>
+        </table>
+      </div>
+      <div class="spec-card">
+        <h3>品牌黄使用铁律</h3>
+        <ul class="rule-list">
+          <li><b>只出现在 3 处</b>:Logo 方块、发送按钮(激活态)、流式输出 shimmer 扫光</li>
+          <li><b>永不用作</b>:hover 背景、激活项背景、边框、用户消息底色</li>
+          <li>侧边栏激活态 = <b>中性灰 rgba(255,255,255,0.07)</b>,靠明度而非彩色</li>
+          <li>浅色主题下文本级强调用 <b>#B8860B 深金</b>,#FFD700 仅存在于色块内</li>
+          <li>成功 / 错误用低饱和 <b>#7DBB6E / #E5716A</b>,不与品牌黄抢焦点</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 落地顺序 ============ -->
+  <div class="section">
+    <h2>⑥ 建议落地顺序</h2>
+    <ul class="rule-list" style="max-width:820px;">
+      <li><b>第一步 · 换底色 + 分隔线</b>:替换 globals.css 色彩 Token 并接入 --divider(半天)——不动组件结构,视感即可提升 60%</li>
+      <li><b>第二步 · Composer 改版</b>:大圆角浮起卡 + 模式/模型胶囊迁入,内层加发丝线;同步从 Sidebar 移除 ModeSelector / ModelSelector(1 天)</li>
+      <li><b>第三步 · 侧边栏瘦身</b>:会话按日期分组,新建按钮去虚线,激活态去黄;ProjectPicker 与状态收到底部;顶部加发丝线</li>
+      <li><b>第四步 · 右面板改抽屉</b>:RightPanel 改为条件渲染 + 滑入动画,Tab 行换分段控件,左侧发丝线;删除 StatusBar,费用移至 Composer 提示行</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

@@ -2,16 +2,20 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/utils/cn'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useConfigStore } from '@/stores/configStore'
-import { Send, Paperclip, Mic, AtSign, Square, X, FileText, Image } from 'lucide-react'
+import { useTokenUsageStore, formatTokenCount, formatCost } from '@/stores/tokenUsageStore'
+import { Plus, Mic, AtSign, Square, X, FileText, Image, ChevronDown, Code, Lightbulb, HelpCircle, Bug, ShieldCheck, Cpu, Search, Zap, Brain, Sparkles } from 'lucide-react'
 import { useVoiceInput } from '@/hooks/useVoiceInput'
 import { useInlineCompletion } from '@/hooks/useInlineCompletion'
-import type { FileAttachment } from '@/types/kilo'
+import type { FileAttachment, BuiltinMode } from '@/types/kilo'
 
 /**
- * Composer 输入组件
+ * Composer 输入组件（Codex V2.3 风格）
  *
  * 核心交互入口：用户输入 → sendMessage → 流式接收 → 渲染
- * 支持：多行输入、@文件引用、/斜杠命令、附件上传、语音输入
+ * Codex 标志性布局：浮起大圆角卡 + 模式/模型胶囊内置底部
+ * - 外层：radius 18px、--bg-secondary 底色、--border 描边、常驻投影
+ * - 输入区与控件区用 --border-hairline 发丝线分隔
+ * - 发送按钮：空闲灰圆形 → 有内容品牌黄圆形 + 柔光
  */
 
 /** 判断 MIME 类型是否为图片 */
@@ -59,7 +63,6 @@ function readFileAsAttachment(file: File): Promise<FileAttachment> {
     const isImage = isImageMime(mimeType)
 
     if (isImage || !isTextMime(mimeType)) {
-      // 二进制文件：读取为 Base64
       const reader = new FileReader()
       reader.onload = () => {
         const base64 = (reader.result as string).split(',')[1] || ''
@@ -74,7 +77,6 @@ function readFileAsAttachment(file: File): Promise<FileAttachment> {
       reader.onerror = reject
       reader.readAsDataURL(file)
     } else {
-      // 文本文件：读取为字符串
       const reader = new FileReader()
       reader.onload = () => {
         resolve({
@@ -91,13 +93,29 @@ function readFileAsAttachment(file: File): Promise<FileAttachment> {
   })
 }
 
+/** 内置模式定义（用于胶囊下拉） */
+const BUILTIN_MODES: { id: BuiltinMode; icon: typeof Code; label: string }[] = [
+  { id: 'code', icon: Code, label: 'Code' },
+  { id: 'plan', icon: Lightbulb, label: 'Plan' },
+  { id: 'ask', icon: HelpCircle, label: 'Ask' },
+  { id: 'debug', icon: Bug, label: 'Debug' },
+  { id: 'review', icon: ShieldCheck, label: 'Review' },
+]
+
 export function Composer() {
   const [value, setValue] = useState('')
   const [showSlashCommands, setShowSlashCommands] = useState(false)
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
+  const [showModeDropdown, setShowModeDropdown] = useState(false)
+  const [showModelDropdown, setShowModelDropdown] = useState(false)
+  const [modelSearchQuery, setModelSearchQuery] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { currentMode, isStreaming, sendMessage, cancelGeneration } = useSessionStore()
+  const modeDropdownRef = useRef<HTMLDivElement>(null)
+  const modelDropdownRef = useRef<HTMLDivElement>(null)
+  const { currentMode, currentModel, isStreaming, sendMessage, cancelGeneration, changeMode, changeModel } = useSessionStore()
+  const { models, providers, customModes } = useConfigStore()
+  const { usage } = useTokenUsageStore()
 
   /** 内联自动补全 */
   const { ghostText, requestCompletion, acceptSuggestion, dismissSuggestion } = useInlineCompletion()
@@ -121,24 +139,35 @@ export function Composer() {
     adjustHeight()
   }, [value, adjustHeight])
 
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (modeDropdownRef.current && !modeDropdownRef.current.contains(e.target as Node)) {
+        setShowModeDropdown(false)
+      }
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
+        setShowModelDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   /** 发送消息 */
   const handleSend = async () => {
     const trimmed = value.trim()
     if (!trimmed && attachments.length === 0) return
 
-    // 清空输入框和附件
     const currentAttachments = attachments.length > 0 ? [...attachments] : undefined
     setValue('')
     setAttachments([])
     adjustHeight()
 
-    // 调用 store 的 sendMessage（核心交互流程）
     await sendMessage(trimmed || '请分析附件内容', currentAttachments)
   }
 
   /** 键盘事件处理 */
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Tab 接受补全建议
     if (e.key === 'Tab' && ghostText) {
       e.preventDefault()
       const accepted = acceptSuggestion()
@@ -147,7 +176,6 @@ export function Composer() {
       }
       return
     }
-    // Enter 发送，Shift+Enter 换行
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       dismissSuggestion()
@@ -157,7 +185,6 @@ export function Composer() {
         handleSend()
       }
     }
-    // Esc 中断流式输出
     if (e.key === 'Escape') {
       if (ghostText) {
         dismissSuggestion()
@@ -167,7 +194,6 @@ export function Composer() {
         cancelGeneration()
       }
     }
-    // / 触发斜杠命令
     if (e.key === '/' && value === '') {
       setShowSlashCommands(true)
     }
@@ -179,14 +205,12 @@ export function Composer() {
     setValue(newValue)
     setShowSlashCommands(newValue === '/')
 
-    // 触发内联补全
     const cursorPos = e.target.selectionStart || newValue.length
     requestCompletion(newValue, cursorPos)
   }
 
   /** 斜杠命令选择 */
   const handleSlashCommand = (command: string) => {
-    // 内置模式切换命令
     const builtinModeCommands: Record<string, string> = {
       '/code': 'code',
       '/plan': 'plan',
@@ -196,26 +220,34 @@ export function Composer() {
     }
 
     if (builtinModeCommands[command]) {
-      useSessionStore.getState().changeMode(builtinModeCommands[command])
+      changeMode(builtinModeCommands[command])
       setValue('')
       setShowSlashCommands(false)
       textareaRef.current?.focus()
       return
     }
 
-    // 自定义模式切换命令（/slug 格式）
-    const customModes = useConfigStore.getState().customModes
-    const customSlug = command.slice(1) // 去掉 /
+    const customSlug = command.slice(1)
     const customMode = customModes.find((m) => m.slug === customSlug)
     if (customMode) {
-      useSessionStore.getState().changeMode(customMode.slug)
+      changeMode(customMode.slug)
       setValue('')
       setShowSlashCommands(false)
       textareaRef.current?.focus()
       return
     }
 
-    // 其他命令作为消息发送
+    if (command === '/fork') {
+      const { activeSessionId, forkSession } = useSessionStore.getState()
+      if (activeSessionId) {
+        forkSession(activeSessionId)
+      }
+      setValue('')
+      setShowSlashCommands(false)
+      textareaRef.current?.focus()
+      return
+    }
+
     setValue(command + ' ')
     setShowSlashCommands(false)
     textareaRef.current?.focus()
@@ -226,7 +258,6 @@ export function Composer() {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // 读取所有选中文件
     const newAttachments: FileAttachment[] = []
     for (let i = 0; i < files.length; i++) {
       try {
@@ -238,8 +269,6 @@ export function Composer() {
     }
 
     setAttachments((prev) => [...prev, ...newAttachments])
-
-    // 重置 input 以允许重复选择同一文件
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -257,8 +286,53 @@ export function Composer() {
     return `${bytes}B`
   }
 
+  /** 获取当前模式显示信息 */
+  const activeModeInfo = (() => {
+    const builtin = BUILTIN_MODES.find(m => m.id === currentMode)
+    if (builtin) return builtin
+    const custom = customModes.find(m => m.slug === currentMode)
+    if (custom) return { id: custom.slug as BuiltinMode, icon: Code, label: custom.name }
+    return BUILTIN_MODES[0] // 默认 Code
+  })()
+
+  /** 按提供商分组的模型列表 */
+  const groupedModels = (() => {
+    const query = modelSearchQuery.toLowerCase()
+    const filtered = query
+      ? models.filter(m =>
+          m.name.toLowerCase().includes(query) ||
+          m.id.toLowerCase().includes(query) ||
+          m.provider.toLowerCase().includes(query)
+        )
+      : models
+
+    const groups: Record<string, typeof models> = {}
+    for (const model of filtered) {
+      const provider = model.provider
+      if (!groups[provider]) groups[provider] = []
+      groups[provider].push(model)
+    }
+    return groups
+  })()
+
+  /** 提供商显示名称映射 */
+  const providerNames = (() => {
+    const names: Record<string, string> = {}
+    for (const p of providers) {
+      names[p.id] = p.name
+    }
+    return names
+  })()
+
+  const activeModel = models.find((model) => model.id === currentModel)
+  const modelLabel = currentModel === 'claude-sonnet-4-20250514'
+    ? 'Claude Sonnet 4.5'
+    : activeModel?.name || currentModel || '选择模型'
+
+  const hasContent = value.trim().length > 0 || attachments.length > 0
+
   return (
-    <div className="relative px-4 py-3">
+    <div className="kc-composer-host">
       {/* 斜杠命令弹窗 */}
       {showSlashCommands && (
         <SlashCommandPopup
@@ -267,58 +341,40 @@ export function Composer() {
         />
       )}
 
-      {/* 附件预览条 */}
-      {attachments.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {attachments.map((att, idx) => (
-            <div
-              key={`${att.name}-${idx}`}
-              className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-tertiary)] px-2 py-1 text-xs"
-            >
-              {isImageMime(att.mimeType) ? (
-                <Image size={12} className="text-[var(--brand-primary)]" />
-              ) : (
-                <FileText size={12} className="text-[var(--accent)]" />
-              )}
-              <span className="max-w-[120px] truncate text-[var(--text-secondary)]">{att.name}</span>
-              <span className="text-[var(--text-tertiary)]">{formatSize(att.size)}</span>
-              <button
-                onClick={() => removeAttachment(idx)}
-                className="ml-0.5 rounded p-0.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--error)]"
-                aria-label="移除附件"
+      {/* Composer 浮起大圆角卡 */}
+      <div className="kc-composer">
+        {/* 附件预览条 */}
+        {attachments.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {attachments.map((att, idx) => (
+              <div
+                key={`${att.name}-${idx}`}
+                className="flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-2 py-1 text-xs"
               >
-                <X size={10} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+                {isImageMime(att.mimeType) ? (
+                  <Image size={12} className="text-[var(--text-secondary)]" />
+                ) : (
+                  <FileText size={12} className="text-[var(--text-secondary)]" />
+                )}
+                <span className="max-w-[120px] truncate text-[var(--text-secondary)]">{att.name}</span>
+                <span className="text-[var(--text-tertiary)]">{formatSize(att.size)}</span>
+                <button
+                  onClick={() => removeAttachment(idx)}
+                  className="ml-0.5 rounded p-0.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--error)]"
+                  aria-label="移除附件"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* 输入区域 */}
-      <div className="flex items-end gap-2 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-3 py-2 transition-colors focus-within:border-[var(--input-focus-border)]">
-        {/* 附件按钮 */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
-          aria-label="添加附件"
-        >
-          <Paperclip size={14} />
-        </button>
-        {/* 隐藏的文件选择 input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept=".pdf,.txt,.md,.json,.ts,.tsx,.js,.jsx,.py,.rs,.go,.java,.c,.cpp,.h,.css,.html,.yaml,.yml,.toml,.xml,.sql,.sh,.bat,.png,.jpg,.jpeg,.gif,.webp,.svg"
-          onChange={handleAttachmentSelect}
-          className="hidden"
-        />
-
-        {/* 文本输入（含 ghost text 补全） */}
-        <div className="relative max-h-[200px] min-h-[28px] flex-1">
-          {/* Ghost text 层：补全建议以半透明文字显示 */}
+        {/* 输入区域 */}
+        <div className="kc-composer-input-wrap">
+          {/* Ghost text 层 */}
           {ghostText && !isStreaming && (
-            <div className="pointer-events-none absolute inset-0 whitespace-pre-wrap break-words px-0 py-0 text-sm text-[var(--text-tertiary)] opacity-40" aria-hidden="true">
+            <div className="pointer-events-none absolute inset-0 whitespace-pre-wrap break-words text-[13.5px] text-[var(--text-tertiary)] opacity-40" aria-hidden="true">
               <span className="invisible">{value}</span>
               <span>{ghostText}</span>
             </div>
@@ -328,69 +384,238 @@ export function Composer() {
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-          placeholder={`输入消息...（当前模式：${currentMode}）`}
-          className="max-h-[200px] min-h-[28px] flex-1 resize-none bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
-          rows={1}
-        />
+            placeholder="描述你的任务，@ 引用文件，/ 唤起命令"
+            className="kc-composer-input"
+            rows={1}
+          />
         </div>
 
-        {/* 操作按钮 */}
-        <div className="flex flex-shrink-0 items-center gap-1">
-          {/* @ 引用 */}
-          <button
-            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
-            aria-label="引用文件"
-          >
-            <AtSign size={14} />
-          </button>
+        {/* 发丝线分隔：输入区与控件区 */}
+        <div className="kc-composer-divider">
+          <div className="kc-composer-bar">
+            {/* 附件按钮 */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="kc-composer-attach"
+              aria-label="添加附件"
+            >
+              <Plus size={15} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.txt,.md,.json,.ts,.tsx,.js,.jsx,.py,.rs,.go,.java,.c,.cpp,.h,.css,.html,.yaml,.yml,.toml,.xml,.sql,.sh,.bat,.png,.jpg,.jpeg,.gif,.webp,.svg"
+              onChange={handleAttachmentSelect}
+              className="hidden"
+            />
 
-          {/* 语音输入 */}
-          {voiceSupported && (
-            <button
-              onClick={toggleListening}
-              className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-                isListening
-                  ? 'bg-[var(--error-muted)] text-[var(--error)] animate-pulse'
-                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'
-              )}
-              aria-label={isListening ? '停止语音输入' : '语音输入'}
-            >
-              <Mic size={14} />
-            </button>
-          )}
+            {/* 模式胶囊 */}
+            <div className="relative" ref={modeDropdownRef}>
+              <button
+                onClick={() => { setShowModeDropdown(!showModeDropdown); setShowModelDropdown(false) }}
+                className="kc-pill"
+              >
+                <activeModeInfo.icon size={11} />
+                <span className="font-medium text-[var(--text-primary)]">{activeModeInfo.label}</span>
+                <ChevronDown size={9} className="text-[var(--text-tertiary)]" />
+              </button>
 
-          {/* 发送/停止按钮 */}
-          {isStreaming ? (
-            <button
-              onClick={cancelGeneration}
-              className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--error)] text-white transition-colors hover:bg-[var(--error)]"
-              aria-label="停止生成"
-            >
-              <Square size={12} />
-            </button>
-          ) : (
-            <button
-              onClick={handleSend}
-              disabled={!value.trim() && attachments.length === 0}
-              className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-                value.trim() || attachments.length > 0
-                  ? 'bg-[var(--brand-primary)] text-black hover:bg-[var(--brand-hover)]'
-                  : 'text-[var(--text-tertiary)]'
+              {showModeDropdown && (
+                <div className="absolute bottom-full left-0 z-50 mb-2 min-w-[160px] rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] py-1 shadow-lg">
+                  {BUILTIN_MODES.map((mode) => (
+                    <button
+                      key={mode.id}
+                      onClick={() => { changeMode(mode.id); setShowModeDropdown(false) }}
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-[var(--bg-hover)]',
+                        currentMode === mode.id && 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
+                      )}
+                    >
+                      <mode.icon size={12} />
+                      <span>{mode.label}</span>
+                    </button>
+                  ))}
+                  {customModes.length > 0 && (
+                    <>
+                      <div className="my-1 border-t border-[var(--border-subtle)]" />
+                      {customModes.map((mode) => (
+                        <button
+                          key={mode.slug}
+                          onClick={() => { changeMode(mode.slug); setShowModeDropdown(false) }}
+                          className={cn(
+                            'flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-[var(--bg-hover)]',
+                            currentMode === mode.slug && 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
+                          )}
+                        >
+                          <Code size={12} />
+                          <span>{mode.name}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
               )}
-              aria-label="发送"
-            >
-              <Send size={14} />
-            </button>
-          )}
+            </div>
+
+            {/* 模型胶囊 */}
+            <div className="relative" ref={modelDropdownRef}>
+              <button
+                onClick={() => { setShowModelDropdown(!showModelDropdown); setShowModeDropdown(false) }}
+                className="kc-pill"
+              >
+                <Cpu size={11} />
+                <span className="max-w-[140px] truncate font-medium text-[var(--text-primary)]">{modelLabel}</span>
+                <ChevronDown size={9} className="text-[var(--text-tertiary)]" />
+              </button>
+
+              {showModelDropdown && (
+                <div className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-lg">
+                  {/* 搜索框 */}
+                  <div className="border-b border-[var(--border-subtle)] p-1.5">
+                    <div className="relative">
+                      <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+                      <input
+                        type="text"
+                        value={modelSearchQuery}
+                        onChange={(e) => setModelSearchQuery(e.target.value)}
+                        placeholder={`搜索 ${models.length} 个模型...`}
+                        className="w-full rounded-sm border border-[var(--input-border)] bg-[var(--input-bg)] py-1 pl-6 pr-2 text-[10px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--input-focus-border)] focus:outline-none"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {/* Auto Model 策略 */}
+                  <div className="border-b border-[var(--border-subtle)] p-1">
+                    <p className="px-2 py-1 text-[10px] font-medium text-[var(--text-tertiary)]">智能路由</p>
+                    {[
+                      { id: 'auto-efficient', icon: Zap, label: 'Auto (高效)' },
+                      { id: 'auto-frontier', icon: Brain, label: 'Auto (前沿)' },
+                      { id: 'auto-balanced', icon: Sparkles, label: 'Auto (均衡)' },
+                    ].map((strategy) => (
+                      <button
+                        key={strategy.id}
+                        onClick={() => { changeModel(strategy.id); setShowModelDropdown(false) }}
+                        className={cn(
+                          'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs transition-colors hover:bg-[var(--bg-hover)]',
+                          currentModel === strategy.id && 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
+                        )}
+                      >
+                        <strategy.icon size={12} />
+                        <span>{strategy.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 按提供商分组的模型列表 */}
+                  <div className="max-h-56 overflow-y-auto p-1">
+                    {Object.entries(groupedModels).map(([provider, providerModels]) => (
+                      <div key={provider}>
+                        <p className="px-2 py-1 text-[10px] font-medium text-[var(--text-tertiary)]">
+                          {providerNames[provider] || provider}
+                          <span className="ml-1 opacity-50">({providerModels.length})</span>
+                        </p>
+                        {providerModels.map((model) => (
+                          <button
+                            key={model.id}
+                            onClick={() => { changeModel(model.id); setShowModelDropdown(false) }}
+                            className={cn(
+                              'flex w-full items-center justify-between rounded-sm px-2 py-1 text-xs transition-colors hover:bg-[var(--bg-hover)]',
+                              currentModel === model.id && 'bg-[var(--bg-hover)] text-[var(--text-primary)]'
+                            )}
+                          >
+                            <span className="truncate">{model.name}</span>
+                            <div className="flex items-center gap-1">
+                              {model.supportsImages && (
+                                <span className="text-[8px] text-[var(--text-tertiary)]" title="支持图片">🖼</span>
+                              )}
+                              {model.contextLength && model.contextLength >= 100000 && (
+                                <span className="text-[8px] text-[var(--success)]" title="长上下文">∞</span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                    {Object.keys(groupedModels).length === 0 && (
+                      <p className="px-2 py-2 text-[10px] text-[var(--text-tertiary)]">无匹配模型</p>
+                    )}
+                  </div>
+
+                  {/* 底部统计 */}
+                  <div className="border-t border-[var(--border-subtle)] px-2 py-1 text-[9px] text-[var(--text-tertiary)]">
+                    共 {models.length} 个模型 · {providers.length} 个提供商
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 右侧：语音 + 发送 */}
+            <div className="kc-composer-right">
+              {/* @ 引用 */}
+                  <button
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-secondary)]"
+                aria-label="引用文件"
+              >
+                <AtSign size={14} />
+              </button>
+
+              {/* 语音输入 */}
+              {voiceSupported && (
+                <button
+                  onClick={toggleListening}
+                  className={cn(
+                    'flex h-[30px] w-[30px] items-center justify-center rounded-lg transition-colors',
+                    isListening
+                      ? 'bg-[var(--error-muted)] text-[var(--error)] animate-pulse'
+                      : 'text-[var(--text-tertiary)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--text-secondary)]'
+                  )}
+                  aria-label={isListening ? '停止语音输入' : '语音输入'}
+                >
+                  <Mic size={14} />
+                </button>
+              )}
+
+              {/* 发送/停止按钮 — Codex 风格圆形 */}
+              {isStreaming ? (
+                <button
+                  onClick={cancelGeneration}
+                  className="kc-send kc-send-stop"
+                  aria-label="停止生成"
+                >
+                  <Square size={12} />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={!hasContent}
+                  className={cn(
+                    'kc-send',
+                    hasContent
+                      ? 'bg-[var(--brand-primary)] text-black shadow-[0_2px_8px_rgba(255,215,0,0.25)]'
+                      : 'bg-[rgba(255,255,255,0.08)] text-[var(--text-tertiary)]'
+                  )}
+                  aria-label="发送"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 底部提示 */}
-      <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-[var(--text-tertiary)]">
-        <span>Enter 发送 · Shift+Enter 换行 · / 命令 · @ 引用 · 📎 附件{ghostText ? ' · Tab 补全' : ''}</span>
-        {isStreaming && <span className="text-[var(--brand-primary)]">Esc 或点击 ■ 停止</span>}
+      {/* 底部提示行 */}
+      <div className="kc-composer-hint">
+        <span>KiloCode 可能出错，请核查重要信息</span>
+        {usage.total > 0 && (
+          <span className="opacity-70">
+            本次会话 {formatCost(usage.cost || 0)} · {formatTokenCount(usage.total)} tokens
+          </span>
+        )}
       </div>
     </div>
   )
@@ -406,7 +631,6 @@ function SlashCommandPopup({
 }) {
   const { customModes } = useConfigStore()
 
-  // 内置命令
   const builtinCommands = [
     { command: '/code', description: '切换到 Code 模式' },
     { command: '/plan', description: '切换到 Plan 模式' },
@@ -415,13 +639,11 @@ function SlashCommandPopup({
     { command: '/review', description: '切换到 Review 模式' },
   ]
 
-  // 自定义模式命令
   const customCommands = customModes.map((mode) => ({
     command: `/${mode.slug}`,
     description: `切换到 ${mode.name} 模式${mode.description ? ` — ${mode.description}` : ''}`,
   }))
 
-  // 通用命令
   const generalCommands = [
     { command: '/clear', description: '清空当前对话' },
     { command: '/compact', description: '压缩对话上下文' },
@@ -431,7 +653,12 @@ function SlashCommandPopup({
   ]
 
   return (
-    <div className="absolute bottom-full left-4 right-4 z-50 mb-2 max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-lg">
+    <div
+      className="absolute bottom-full left-6 right-6 z-50 mb-2 max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] shadow-lg"
+      style={{ maxWidth: '720px', margin: '0 auto' }}
+      tabIndex={-1}
+      onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}
+    >
       <div className="p-1">
         <p className="px-2 py-1 text-[10px] font-medium text-[var(--text-tertiary)]">模式切换</p>
         {builtinCommands.map((cmd) => (
@@ -440,7 +667,7 @@ function SlashCommandPopup({
             onClick={() => onSelect(cmd.command)}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs transition-colors hover:bg-[var(--bg-hover)]"
           >
-            <span className="font-mono text-[var(--brand-primary)]">{cmd.command}</span>
+            <span className="font-mono text-[var(--text-secondary)]">{cmd.command}</span>
             <span className="text-[var(--text-tertiary)]">{cmd.description}</span>
           </button>
         ))}
@@ -453,7 +680,7 @@ function SlashCommandPopup({
                 onClick={() => onSelect(cmd.command)}
                 className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs transition-colors hover:bg-[var(--bg-hover)]"
               >
-                <span className="font-mono text-[var(--brand-primary)]">{cmd.command}</span>
+                <span className="font-mono text-[var(--text-secondary)]">{cmd.command}</span>
                 <span className="text-[var(--text-tertiary)]">{cmd.description}</span>
               </button>
             ))}
@@ -466,7 +693,7 @@ function SlashCommandPopup({
             onClick={() => onSelect(cmd.command)}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs transition-colors hover:bg-[var(--bg-hover)]"
           >
-            <span className="font-mono text-[var(--brand-primary)]">{cmd.command}</span>
+            <span className="font-mono text-[var(--text-secondary)]">{cmd.command}</span>
             <span className="text-[var(--text-tertiary)]">{cmd.description}</span>
           </button>
         ))}

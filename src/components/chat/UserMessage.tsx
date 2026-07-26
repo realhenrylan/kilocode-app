@@ -1,13 +1,14 @@
-import { FileText, Image } from 'lucide-react'
-import type { KiloMessage, FileAttachment } from '@/types/kilo'
+import { FileText, Image, GitBranch } from 'lucide-react'
+import type { KiloMessage } from '@/types/kilo'
 
 /**
  * 用户消息组件
  *
  * Codex风格：带品牌黄调背景的气泡，右对齐
  * 支持展示文件附件标签
+ * Hover 时显示分叉按钮，支持从此消息分叉会话
  */
-export function UserMessage({ message }: { message: KiloMessage }) {
+export function UserMessage({ message, onFork }: { message: KiloMessage; onFork?: (messageId: string) => void }) {
   const { content, attachments } = message
 
   /** 判断附件是否为图片 */
@@ -21,8 +22,19 @@ export function UserMessage({ message }: { message: KiloMessage }) {
   }
 
   return (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-[var(--user-msg-bg)] px-4 py-2.5">
+    <div className="kc-msg-user-row group">
+      {/* Hover 分叉按钮 */}
+      {onFork && (
+        <button
+          onClick={() => onFork(message.id)}
+          className="absolute -left-1 -top-1 flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-tertiary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] group-hover:opacity-100"
+          aria-label="从此消息分叉"
+          title="从此消息分叉会话"
+        >
+          <GitBranch size={14} />
+        </button>
+      )}
+      <div className="kc-msg-user">
         {/* 附件标签 */}
         {attachments && attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">
@@ -32,7 +44,7 @@ export function UserMessage({ message }: { message: KiloMessage }) {
                 className="flex items-center gap-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px]"
               >
                 {isImage(att.mimeType) ? (
-                  <Image size={10} className="text-[var(--brand-primary)]" />
+                  <Image size={10} className="text-[var(--text-secondary)]" />
                 ) : (
                   <FileText size={10} className="text-[var(--accent)]" />
                 )}
@@ -42,7 +54,7 @@ export function UserMessage({ message }: { message: KiloMessage }) {
             ))}
           </div>
         )}
-        <p className="whitespace-pre-wrap text-sm text-[var(--text-primary)]">{content}</p>
+        <p className="whitespace-pre-wrap leading-[1.7]">{content}</p>
       </div>
     </div>
   )

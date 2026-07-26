@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut } from 'electron'
+import { BrowserWindow, globalShortcut } from 'electron'
 
 /**
  * 全局快捷键注册

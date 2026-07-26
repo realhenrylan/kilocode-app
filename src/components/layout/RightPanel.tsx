@@ -7,53 +7,57 @@ import { BrowserPanel } from '@/components/browser/BrowserPanel'
 import { Terminal, GitCompare, FolderTree, Globe, X } from 'lucide-react'
 
 /**
- * 右侧面板
+ * 右侧工作抽屉（Codex V2.3 风格）
  *
- * 可折叠面板，包含终端、Diff查看器、文件树、浏览器控制四个标签页
- * Codex风格：与主区域通过细边框分隔
+ * 按需唤出的 440px 工作抽屉，顶部分段控件切换
+ * 左侧 --divider 发丝线与主区相隔
+ * 抽屉打开时对话列自动收窄
  */
 export function RightPanel() {
   const { rightPanelTab, setRightPanelTab, toggleRightPanel } = useUiStore()
 
   const tabs = [
     { id: 'terminal' as const, icon: Terminal, label: '终端' },
+    { id: 'diff' as const, icon: GitCompare, label: '差异' },
     { id: 'browser' as const, icon: Globe, label: '浏览器' },
-    { id: 'diff' as const, icon: GitCompare, label: 'Diff' },
     { id: 'files' as const, icon: FolderTree, label: '文件' },
   ]
 
   return (
-    <div className="flex h-full w-full flex-col">
-      {/* 标签栏 */}
-      <div className="flex items-center justify-between border-b border-[var(--border-subtle)]">
-        <div className="flex">
+    <div className="kc-drawer">
+      {/* 抽屉头部：分段控件 + 关闭按钮 */}
+      <div className="kc-drawer-head">
+        {/* 分段控件 */}
+        <div className="kc-segmented">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setRightPanelTab(tab.id)}
               className={cn(
-                'flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs transition-colors',
+                'kc-segmented-item',
                 rightPanelTab === tab.id
-                  ? 'border-[var(--brand-primary)] text-[var(--brand-primary)]'
-                  : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  ? 'is-active'
+                  : ''
               )}
             >
               <tab.icon size={12} />
-              {tab.label}
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
+
+        {/* 关闭按钮 */}
         <button
           onClick={toggleRightPanel}
-          className="mr-2 flex h-6 w-6 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
-          aria-label="关闭面板"
+          className="kc-icon-btn kc-drawer-close"
+          aria-label="关闭抽屉"
         >
-          <X size={12} />
+          <X size={14} />
         </button>
       </div>
 
-      {/* 标签内容 */}
-      <div className="flex-1 overflow-hidden">
+      {/* 抽屉内容 */}
+      <div className="kc-drawer-body">
         {rightPanelTab === 'terminal' && <TerminalPanel />}
         {rightPanelTab === 'browser' && <BrowserPanel />}
         {rightPanelTab === 'diff' && <DiffViewer />}

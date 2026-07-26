@@ -1,6 +1,6 @@
 # KiloCode Desktop — 进度与交接文档
 
-> 最后更新：2026-07-24 | 当前版本：v0.7.0-dev
+> 最后更新：2026-07-25 | 当前版本：v0.8.0-dev
 
 ---
 
@@ -19,7 +19,7 @@
 |--------|------|------|
 | TypeScript 类型检查 | ✅ 通过 | `npx tsc --noEmit` 零错误 |
 | Vite 生产构建 | ✅ 通过 | client 568KB / main 8.5KB / preload 2.3KB |
-| Electron 桌面运行 | ❌ 未验证 | 构建通过但未实际启动验证 |
+| Electron 桌面运行 | ✅ 已验证 | 7 项检查清单全部通过（窗口/标题栏/托盘/CLI降级/主题/尺寸/快捷键） |
 | 单元测试 | ❌ 无 | 未建立测试框架 |
 
 ---
@@ -98,7 +98,7 @@
 ### 🔴 高优先级（核心功能缺失）
 
 #### 1. 会话分叉 UI
-- **状态**：API 已有 (`kiloClient.forkSession`)，sessionStore action 已有，**UI 入口未实现**
+- **状态**：✅ 已完成 — hover 分叉按钮 + `/fork` 斜杠命令 + 本地模拟分叉
 - **需要**：
   - 消息 hover 显示分叉按钮（GitBranch 图标）
   - 点击调用 `forkSession(sessionId, messageId)`
@@ -108,7 +108,7 @@
 - **预估工作量**：2-3 小时
 
 #### 2. 自动恢复完善
-- **状态**：persist + 崩溃重载已完成，**resumeSession 未接入**
+- **状态**：✅ 已完成 — resumeSession 接入 + wasInterrupted 检测 + Toast 提示
 - **需要**：
   - `useKiloConnection` 连接成功后检查 `activeSessionId`，调用 `kiloApi.resumeSession(id)`
   - 窗口状态持久化（大小/位置保存到 localStorage，启动时恢复）
@@ -117,12 +117,22 @@
 - **预估工作量**：2-3 小时
 
 #### 3. Electron 桌面运行时验证
-- **状态**：构建通过，**未实际启动验证**
-- **需要**：
-  - `npm run electron:dev` 启动验证
-  - 检查窗口渲染、标题栏、托盘、主题、快捷键
-  - 修复发现的问题
-- **预估工作量**：1-3 小时（取决于问题数量）
+- **状态**：✅ 已完成 — 7 项检查清单全部通过
+- **修复的问题**：
+  - ESM `__dirname` 不可用 → 添加 `fileURLToPath(import.meta.url)` 兼容
+  - preload 路径错误 → `../preload/index.js` 改为 `preload.js`
+  - KiloProcess CLI 启动失败 → 优雅降级到 mock 模式
+  - 窗口关闭逻辑 → 添加 `isQuitting` 标志
+  - dev server URL 传递 → 支持 `VITE_DEV_SERVER_URL` + fallback
+  - vite-plugin-electron 自动启动冲突 → `ELECTRON_STARTUP_PREVENT` + 自定义启动脚本
+- **验证结果**：
+  1. ✅ 窗口正常显示（标题 "KiloCode"）
+  2. ✅ 自定义标题栏（最小化/最大化/关闭按钮）
+  3. ✅ 系统托盘图标和上下文菜单
+  4. ✅ CLI 子进程优雅降级（mock 模式）
+  5. ✅ 主题切换（dark/light/system）
+  6. ✅ 窗口大小/位置（1414×909，默认 1400×900）
+  7. ✅ 键盘快捷键（Ctrl+Shift+K/N/B/J/,）
 
 ### 🟡 中优先级（功能增强）
 
@@ -262,19 +272,19 @@ uiStore.setTheme('dark'|'light'|'system')
 
 ### 继续开发优先级建议
 
-1. **先做 Electron 桌面运行时验证** — 确保基础可用
-2. **再补全会话分叉 UI** — 核心功能缺失
-3. **完善自动恢复** — resumeSession 接入
-4. **PDF 上传** — 功能补全
-5. **代码分割 + 测试** — 质量提升
+1. **PDF 上传** — 功能补全
+2. **模型参数配置 UI** — 功能增强
+3. **窗口状态持久化** — 体验优化
+4. **代码分割 + 测试** — 质量提升
 
 ### 开发环境注意事项
 
 - Windows + Git Bash 环境
 - Node.js 18+，npm 9+
 - Vite dev server 端口默认 5173
-- Electron 开发模式需同时运行 Vite + Electron
+- Electron 开发模式使用 `npm run electron:dev`（自定义启动脚本，显式传递 VITE_DEV_SERVER_URL）
 - 未安装 KiloCode CLI 时应用以模拟模式运行（所有 UI 可交互）
+- `package.json` 设置 `"type": "module"`，Electron 主进程需使用 `fileURLToPath(import.meta.url)` 替代 `__dirname`
 
 ---
 
@@ -282,7 +292,7 @@ uiStore.setTheme('dark'|'light'|'system')
 
 | 版本 | 目标 | 预估 |
 |------|------|------|
-| v0.8.0 | 会话分叉 UI + 自动恢复完善 + 桌面验证 | 1 天 |
+| v0.8.0 | ✅ 已完成：会话分叉 UI + 自动恢复完善 + 桌面验证 | 1 天 |
 | v0.9.0 | PDF 上传 + 模型参数 UI + 窗口状态持久化 | 1 天 |
 | v0.10.0 | 代码分割优化 + 单元测试框架 | 1 天 |
 | v1.0.0 | 全面测试 + Bug 修复 + 文档完善 | 1-2 天 |

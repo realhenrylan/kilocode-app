@@ -2,20 +2,66 @@ import { cn } from '@/utils/cn'
 import { useSessionStore } from '@/stores/sessionStore'
 import { MessageSquare, Trash2, GitBranch } from 'lucide-react'
 import type { KiloSession } from '@/types/kilo'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 
 /**
- * 会话列表组件
+ * 会话列表组件（Codex V2.3 风格）
  *
- * 显示所有会话，支持选择、删除、分叉
- * 与 sessionStore 的真实 API 对接
+ * 按日期分组：今天 / 昨天 / 过去7天 / 更早
+ * 支持搜索过滤
+ * 激活态用中性灰，去黄
  */
-export function SessionList() {
+
+/** 日期分组逻辑 */
+function groupSessionsByDate(sessions: KiloSession[]) {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today.getTime() - 86400000)
+  const weekAgo = new Date(today.getTime() - 7 * 86400000)
+
+  const groups: { label: string; sessions: KiloSession[] }[] = [
+    { label: '今天', sessions: [] },
+    { label: '昨天', sessions: [] },
+    { label: '过去 7 天', sessions: [] },
+    { label: '更早', sessions: [] },
+  ]
+
+  for (const session of sessions) {
+    const date = new Date(session.createdAt)
+    if (date >= today) {
+      groups[0].sessions.push(session)
+    } else if (date >= yesterday) {
+      groups[1].sessions.push(session)
+    } else if (date >= weekAgo) {
+      groups[2].sessions.push(session)
+    } else {
+      groups[3].sessions.push(session)
+    }
+  }
+
+  // 只返回有会话的分组
+  return groups.filter(g => g.sessions.length > 0)
+}
+
+export function SessionList({ searchQuery = '' }: { searchQuery?: string }) {
   const { sessions, activeSessionId, switchToSession, deleteSession, forkSession } = useSessionStore()
+
+  /** 搜索过滤 */
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions
+    const q = searchQuery.toLowerCase()
+    return sessions.filter(s =>
+      (s.title || '').toLowerCase().includes(q) ||
+      s.mode.toLowerCase().includes(q)
+    )
+  }, [sessions, searchQuery])
+
+  /** 日期分组 */
+  const grouped = useMemo(() => groupSessionsByDate(filteredSessions), [filteredSessions])
 
   if (sessions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-[var(--text-tertiary)]">
+      <div className="kc-empty-sessions">
         <MessageSquare size={24} className="mb-2 opacity-30" />
         <p className="text-xs">暂无会话</p>
         <p className="text-[10px]">输入消息开始新会话</p>
@@ -24,17 +70,29 @@ export function SessionList() {
   }
 
   return (
-    <div className="flex flex-col gap-0.5">
-      {sessions.map((session) => (
-        <SessionItem
-          key={session.id}
-          session={session}
-          isActive={session.id === activeSessionId}
-          onSelect={() => switchToSession(session.id)}
-          onDelete={() => deleteSession(session.id)}
-          onFork={() => forkSession(session.id)}
-        />
+    <div className="kc-session-list">
+      {/* 分组会话列表 */}
+      {grouped.map((group) => (
+        <div key={group.label}>
+          <div className="kc-side-label">{group.label}</div>
+          {group.sessions.map((session) => (
+            <SessionItem
+              key={session.id}
+              session={session}
+              isActive={session.id === activeSessionId}
+              onSelect={() => switchToSession(session.id)}
+              onDelete={() => deleteSession(session.id)}
+              onFork={() => forkSession(session.id)}
+            />
+          ))}
+        </div>
       ))}
+
+      {filteredSessions.length === 0 && searchQuery && (
+        <div className="kc-no-matches">
+          无匹配会话
+        </div>
+      )}
     </div>
   )
 }
@@ -57,7 +115,8 @@ function SessionItem({
   return (
     <div
       className={cn(
-        'group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
+        'kc-side-item group',
+        isActive && 'is-active',
         isActive
           ? 'bg-[var(--sidebar-item-active)] text-[var(--sidebar-item-active-text)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--sidebar-item-hover)]'
@@ -67,25 +126,19 @@ function SessionItem({
       onMouseLeave={() => setShowActions(false)}
       title={session.title}
     >
-      <MessageSquare size={12} className="flex-shrink-0 opacity-50" />
-      <div className="flex-1 overflow-hidden">
-        <p className="truncate text-xs">{session.title || '新会话'}</p>
-        <div className="flex items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
-          <span className="capitalize">{session.mode}</span>
-          {session.messageCount > 0 && <span>{session.messageCount}条消息</span>}
-          {session.status === 'error' && <span className="text-[var(--error)]">错误</span>}
-        </div>
+      <div className="kc-side-item-title">
+        <p>{session.title || '新会话'}</p>
       </div>
 
       {/* 悬浮操作按钮 */}
       {showActions && (
-        <div className="flex flex-shrink-0 items-center gap-0.5">
+        <div className="kc-side-item-actions">
           <button
             onClick={(e) => {
               e.stopPropagation()
               onFork()
             }}
-            className="rounded p-0.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--brand-primary)]"
+            className="rounded p-0.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
             aria-label="分叉会话"
             title="分叉会话"
           >

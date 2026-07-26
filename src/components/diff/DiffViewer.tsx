@@ -13,8 +13,15 @@ import { cn } from '@/utils/cn'
 export function DiffViewer() {
   // 占位提示：实际使用时通过 props 或 store 传入 diff 内容
   return (
-    <div className="h-full overflow-y-auto p-2 text-xs">
-      <DiffContent diffText={sampleDiff} />
+    <div className="kc-diff-viewer">
+      <div className="kc-diff-file">
+        <div className="kc-diff-file-head">
+          <span className="text-[var(--text-tertiary)]">▾</span>
+          <span>src/components/App.tsx</span>
+          <span className="kc-diff-counts"><b>+5</b><i>−2</i></span>
+        </div>
+        <DiffContent diffText={sampleDiff} />
+      </div>
     </div>
   )
 }
@@ -119,12 +126,12 @@ function DiffContent({ diffText }: { diffText: string }) {
   }
 
   return (
-    <div className="font-mono">
+    <div className="kc-diff-lines">
       {hunks.map((hunk, i) => (
         <div key={i}>
           {/* Hunk header */}
           {hunk.header && (
-            <div className="sticky top-0 bg-[var(--bg-secondary)] px-2 py-0.5 text-[10px] text-[var(--accent)] border-b border-[var(--border-subtle)]">
+            <div className="kc-diff-hunk">
               {hunk.header}
             </div>
           )}
@@ -143,24 +150,20 @@ function DiffLineRow({ line }: { line: DiffLine }) {
   return (
     <div
       className={cn(
-        'flex',
-        line.type === 'add' && 'bg-[var(--diff-add-bg)]',
-        line.type === 'delete' && 'bg-[var(--diff-del-bg)]',
-        line.type === 'header' && 'bg-[var(--bg-tertiary)] text-[var(--accent)]',
+        'kc-diff-line',
+        line.type === 'add' && 'is-add',
+        line.type === 'delete' && 'is-delete',
+        line.type === 'context' && 'is-context',
       )}
     >
-      {/* 旧行号 */}
-      <span className="w-10 flex-shrink-0 select-none text-right text-[var(--text-tertiary)]">
-        {line.oldNum ?? ''}
-      </span>
-      {/* 新行号 */}
-      <span className="w-10 flex-shrink-0 select-none text-right text-[var(--text-tertiary)]">
-        {line.newNum ?? ''}
+      {/* 行号 */}
+      <span className="kc-diff-line-number">
+        {line.newNum ?? line.oldNum ?? ''}
       </span>
       {/* 变更标记 */}
       <span
         className={cn(
-          'w-5 flex-shrink-0 select-none text-center',
+          'kc-diff-marker',
           line.type === 'add' && 'text-[var(--diff-add-text)]',
           line.type === 'delete' && 'text-[var(--diff-del-text)]',
         )}

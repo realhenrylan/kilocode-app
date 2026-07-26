@@ -27,14 +27,14 @@ export class KiloProcess extends EventEmitter {
 
   /**
    * 启动 KiloCode CLI 服务
-   * @returns 服务端口号
+   * @returns 服务端口号；CLI 不可用时返回默认端口并标记为降级模式
    */
   async start(): Promise<number> {
     if (this.process) {
       return this._port
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       try {
         // 启动 kilo serve 子进程
         this.process = spawn('kilo', ['serve', '--port', String(this._port)], {
@@ -89,7 +89,10 @@ export class KiloProcess extends EventEmitter {
           this._ready = false
           this.process = null
           if (!started) {
-            reject(err)
+            // CLI 不可用时优雅降级：返回默认端口，前端将进入 mock 模式
+            console.warn('[kilo serve] CLI not available, falling back to mock mode')
+            started = true
+            resolve(this._port)
           } else {
             this.emit('error', err)
             this.scheduleRestart()
@@ -102,7 +105,10 @@ export class KiloProcess extends EventEmitter {
           this._ready = false
           this.process = null
           if (!started) {
-            reject(new Error(`kilo serve exited with code ${code}`))
+            // CLI 不可用时优雅降级：返回默认端口，前端将进入 mock 模式
+            console.warn('[kilo serve] CLI not available, falling back to mock mode')
+            started = true
+            resolve(this._port)
           } else if (code !== 0) {
             // 非正常退出，尝试重启
             this.scheduleRestart()
@@ -119,7 +125,10 @@ export class KiloProcess extends EventEmitter {
         }, 10000)
 
       } catch (err) {
-        reject(err)
+        // spawn 本身抛出异常（如命令不存在），优雅降级
+        console.warn('[kilo serve] CLI spawn failed, falling back to mock mode:', err)
+        this.process = null
+        resolve(this._port)
       }
     })
   }

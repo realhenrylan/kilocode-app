@@ -1,8 +1,8 @@
-import { cn } from '@/utils/cn'
 import { ToolCallCard } from './ToolCallCard'
 import { CodeBlock } from '@/components/common/CodeBlock'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { GitBranch } from 'lucide-react'
 import type { KiloToolCall, KiloMessage } from '@/types/kilo'
 
 /**
@@ -10,37 +10,46 @@ import type { KiloToolCall, KiloMessage } from '@/types/kilo'
  *
  * Codex风格：左对齐，Markdown渲染 + 代码高亮 + 工具调用卡片
  * 流式输出时显示光标闪烁，底部显示 token 用量元数据
+ * Hover 时显示分叉按钮，支持从此消息分叉会话
  */
 export function AssistantMessage({
   content,
   toolCalls,
   isStreaming,
   message,
+  messageId,
+  onFork,
 }: {
   content: string
   toolCalls?: KiloToolCall[]
   isStreaming?: boolean
   /** 完整消息对象，用于提取元数据（token 用量、耗时等） */
   message?: KiloMessage
+  /** 消息 ID，用于分叉定位 */
+  messageId?: string
+  /** 分叉回调 */
+  onFork?: (messageId: string) => void
 }) {
   const tokenUsage = message?.metadata?.tokenUsage
   const duration = message?.metadata?.duration
 
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[90%] space-y-2">
-        {/* 工具调用展示 */}
-        {toolCalls && toolCalls.length > 0 && (
-          <div className="space-y-1">
-            {toolCalls.map((call) => (
-              <ToolCallCard key={call.id} toolCall={call} />
-            ))}
-          </div>
-        )}
-
+    <div className="kc-msg-ai group">
+      {/* Hover 分叉按钮 */}
+      {onFork && messageId && !isStreaming && (
+        <button
+          onClick={() => onFork(messageId)}
+          className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-tertiary)] opacity-0 transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] group-hover:opacity-100"
+          aria-label="从此消息分叉"
+          title="从此消息分叉会话"
+        >
+          <GitBranch size={14} />
+        </button>
+      )}
+      <div className="kc-msg-ai-body">
         {/* Markdown 内容 */}
         {content && (
-          <div className="prose-invert text-sm text-[var(--text-primary)]">
+          <div className="kc-msg-content prose-invert">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -87,13 +96,22 @@ export function AssistantMessage({
           </div>
         )}
 
-        {/* Token 用量元数据 */}
+        {/* 工具调用展示 */}
+        {toolCalls && toolCalls.length > 0 && (
+          <div className="kc-tool-stack">
+            {toolCalls.map((call) => (
+              <ToolCallCard key={call.id} toolCall={call} />
+            ))}
+          </div>
+        )}
+
+        {/* Token 用量元数据 — 中性色，去品牌黄 */}
         {!isStreaming && tokenUsage && (
-          <div className="flex items-center gap-3 text-[10px] text-[var(--text-tertiary)]">
-            <span>↑ {tokenUsage.inputTokens.toLocaleString()}</span>
-            <span>↓ {tokenUsage.outputTokens.toLocaleString()}</span>
+          <div className="flex items-center gap-3 text-[11.5px] text-[var(--text-tertiary)]">
+            <span>↑ {tokenUsage.input?.toLocaleString() ?? '—'}</span>
+            <span>↓ {tokenUsage.output?.toLocaleString() ?? '—'}</span>
             {tokenUsage.cost != null && tokenUsage.cost > 0 && (
-              <span className="text-[var(--brand-primary)]">
+              <span>
                 ${tokenUsage.cost < 0.001 ? tokenUsage.cost.toFixed(6) : tokenUsage.cost < 0.01 ? tokenUsage.cost.toFixed(4) : tokenUsage.cost.toFixed(2)}
               </span>
             )}

@@ -72,14 +72,14 @@ export function useKiloConnection() {
     return () => clearInterval(interval)
   }, [connect, connected, retryCount, isElectron])
 
-  // 首次连接成功后自动加载数据
+  // 首次连接成功后自动加载数据 + 恢复会话
   useEffect(() => {
     if (connected && !hasLoadedRef.current) {
       hasLoadedRef.current = true
 
       // 并行加载所有初始数据
       const { loadConfig, loadModels, loadProviders, loadMcpServers } = useConfigStore.getState()
-      const { loadSessions } = useSessionStore.getState()
+      const { loadSessions, activeSessionId } = useSessionStore.getState()
       const { loadIndexStatus } = useIndexStore.getState()
 
       Promise.allSettled([
@@ -89,7 +89,15 @@ export function useKiloConnection() {
         loadMcpServers(),
         loadSessions(),
         loadIndexStatus(),
-      ]).catch((err) => {
+      ]).then(() => {
+        // 数据加载完成后，恢复活跃会话
+        if (activeSessionId) {
+          const { resumeSession } = useSessionStore.getState()
+          resumeSession(activeSessionId).catch((err) => {
+            console.warn('[useKiloConnection] resumeSession failed, local data still available:', err)
+          })
+        }
+      }).catch((err) => {
         console.error('[useKiloConnection] Initial data load failed:', err)
       })
     }

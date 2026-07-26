@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useSessionStore } from '@/stores/sessionStore'
-import { FolderOpen, ChevronDown } from 'lucide-react'
-import { cn } from '@/utils/cn'
+import { FolderOpen, ChevronDown, Box } from 'lucide-react'
 
 /**
  * 项目选择器
@@ -28,13 +27,14 @@ export function ProjectPicker() {
   }
 
   return (
-    <div className="relative">
+    <div className="kc-project-picker relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+        className="kc-project-button"
       >
-        <FolderOpen size={10} />
-        <span className="truncate">{workingDir || '选择项目目录'}</span>
+        <Box size={13} />
+        <span className="truncate">{workingDir ? workingDir.split(/[\\/]/).pop() : '选择项目目录'}</span>
+        {workingDir && <span className="kc-project-status-dot" />}
         <ChevronDown size={8} className="flex-shrink-0" />
       </button>
 
