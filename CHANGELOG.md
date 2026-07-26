@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+### Fix — 修复生产环境 Logo 资源加载与空状态展示
+- 将 Logo 和 favicon 路径改为相对路径，确保 Electron 打包后的生产环境能够正确加载资源
+- 移除空状态 Logo 外层边框与背景容器，放大官方 Kilo Logo 并保持界面风格统一
+
 ### Fix — 修复 "Error Launching App" 启动失败
 - 修复 `package.json` 的 `main` 字段指向不存在的 `dist-electron/main/index.js`，改为实际输出路径 `dist-electron/main.js`
 - 修复生产模式 `loadFile` 路径错误：`../renderer/index.html`（不存在）改为 `../dist/index.html`（Vite 实际输出目录）
