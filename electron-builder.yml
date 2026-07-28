@@ -2,11 +2,14 @@ appId: com.kilocode.desktop
 productName: KiloCode
 directories:
   buildResources: resources
-  output: release
+  output: D:\KiloCode-Release
 files:
   - dist-electron
   - dist
   - "!node_modules"
+  # node-pty 原生模块：包含预编译的 N-API 二进制文件
+  # vite.config.ts 已将其标记为 external，运行时 require 从此处加载
+  - node_modules/node-pty/**/*
 extraResources:
   - from: resources/icon.png
     to: icon.png
@@ -26,3 +29,8 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: KiloCode
 asar: true
+npmRebuild: false
+# node-pty 1.1.0 提供预编译的 N-API 二进制文件（prebuilds/win32-x64/），
+# 无需 Visual Studio Build Tools 即可在 Windows 上运行。
+# vite.config.ts 已将 node-pty 标记为 external，配合 files 配置包含
+# node_modules/node-pty/**，确保打包后原生模块路径正确。

@@ -38,6 +38,30 @@ const api = {
       ipcRenderer.invoke('fs:writeFile', filePath, content),
   },
 
+  /** PTY 终端操作 */
+  pty: {
+    /** 检查 PTY（node-pty）是否可用 */
+    isAvailable: (): Promise<boolean> => ipcRenderer.invoke('pty:isAvailable'),
+    /** 创建 PTY 实例 */
+    create: (id: string, cols: number, rows: number, cwd?: string): Promise<void> =>
+      ipcRenderer.invoke('pty:create', { id, cols, rows, cwd }),
+    /** 向 PTY 写入数据（用户输入） */
+    write: (id: string, data: string): void => ipcRenderer.send('pty:write', { id, data }),
+    /** 调整 PTY 尺寸 */
+    resize: (id: string, cols: number, rows: number): void =>
+      ipcRenderer.send('pty:resize', { id, cols, rows }),
+    /** 杀死 PTY 进程 */
+    kill: (id: string): void => ipcRenderer.send('pty:kill', { id }),
+    /** 监听 PTY 输出数据 */
+    onData: (callback: (id: string, data: string) => void) => {
+      ipcRenderer.on('pty:data', (_, id, data) => callback(id, data))
+    },
+    /** 监听 PTY 退出事件 */
+    onExit: (callback: (id: string, exitCode: number) => void) => {
+      ipcRenderer.on('pty:exit', (_, id, exitCode) => callback(id, exitCode))
+    },
+  },
+
   /** 事件监听 */
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     ipcRenderer.on(channel, (_, ...args) => callback(...args))

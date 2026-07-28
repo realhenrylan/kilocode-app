@@ -1,18 +1,23 @@
 import { create } from 'zustand'
 import type { BrowserState, BrowserAction, BrowserSnapshot } from '@/types/kilo'
-import { kiloApi } from '@/services/kiloClient'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useSessionStore } from '@/stores/sessionStore'
 
 /**
  * 浏览器控制状态管理
  *
- * 管理 KiloCode 内置浏览器的启动、导航、截图、元素交互等
- * 与 kiloClient browser API 真实对接
- * 未连接 CLI 时提供模拟模式用于开发/演示
+ * 管理 KiloCode 内置浏览器的启动、导航、截图等
+ * 使用 <webview> 标签嵌入真实浏览器，同时保留 kiloApi CLI 后端作为可选
  */
 
+/** webview 标签引用类型（Electron WebviewTag） */
+type WebviewTag = Electron.WebviewTag
+
 interface BrowserStoreState extends BrowserState {
+  // Additional state
+  /** webview 实例引用，供面板组件外使用 */
+  webviewRef: WebviewTag | null
+
   // Actions
   /** 启动浏览器 */
   launch: () => Promise<void>
@@ -44,6 +49,8 @@ interface BrowserStoreState extends BrowserState {
   getSnapshot: () => Promise<void>
   /** 执行通用浏览器操作 */
   executeAction: (action: BrowserAction) => Promise<void>
+  /** 设置 webview 引用 */
+  setWebviewRef: (ref: WebviewTag | null) => void
   /** 清除错误 */
   clearError: () => void
   /** 重置状态 */
@@ -62,82 +69,36 @@ const initialState: BrowserState = {
   error: null,
 }
 
-/** 模拟页面数据（未连接 CLI 时的演示模式） */
-const MOCK_PAGES: Record<string, { title: string; tree: string; screenshot: string }> = {
-  'about:blank': {
-    title: '空白页',
-    tree: '[document] 空白页\n  [body]',
-    screenshot: '',
-  },
-  'https://example.com': {
-    title: 'Example Domain',
-    tree: '[document] Example Domain\n  [heading "Example Domain"]\n  [paragraph "This domain is for use in illustrative examples..."]\n  [link "More information..." url="https://www.iana.org/domains/example"]',
-    screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-  },
-  'https://github.com': {
-    title: 'GitHub: Let\'s build from here',
-    tree: '[document] GitHub\n  [navigation]\n    [link "GitHub"]\n    [search "Search or jump to..."]\n    [link "Pull requests"]\n    [link "Issues"]\n  [main]\n    [heading "Let\'s build from here"]\n    [paragraph "The world\'s leading AI-powered developer platform"]\n    [textbox "Email address"]\n    [button "Sign up for GitHub"]',
-    screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-  },
-}
-
 export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
   ...initialState,
+  webviewRef: null,
+
+  setWebviewRef: (ref: WebviewTag | null) => {
+    set({ webviewRef: ref })
+  },
 
   launch: async () => {
-    const connected = useConnectionStore.getState().connected
-    const sessionId = useSessionStore.getState().activeSessionId
-
-    set({ isActing: true, error: null })
-
-    if (connected && sessionId) {
-      try {
-        await kiloApi.launchBrowser(sessionId)
-        // 启动后获取初始快照
-        const snapshot = await kiloApi.browserSnapshot(sessionId)
-        set({
-          launched: true,
-          currentUrl: snapshot.url,
-          pageTitle: snapshot.title,
-          accessibilityTree: snapshot.accessibilityTree,
-          screenshot: snapshot.screenshot || null,
-          history: [snapshot.url],
-          historyIndex: 0,
-          isActing: false,
-        })
-        return
-      } catch (err) {
-        console.error('[browserStore.launch] API failed:', err)
-        // 降级到模拟模式
-      }
-    }
-
-    // 模拟模式
-    await new Promise((r) => setTimeout(r, 500))
+    // webview 模式：直接设置 launched 状态
+    // 实际的 webview 在 BrowserPanel 中渲染
     set({
       launched: true,
       currentUrl: 'about:blank',
       pageTitle: '空白页',
-      accessibilityTree: MOCK_PAGES['about:blank'].tree,
+      accessibilityTree: null,
       screenshot: null,
       history: ['about:blank'],
       historyIndex: 0,
       isActing: false,
+      error: null,
     })
   },
 
   close: async () => {
-    const connected = useConnectionStore.getState().connected
-    const sessionId = useSessionStore.getState().activeSessionId
-
-    if (connected && sessionId) {
-      try {
-        await kiloApi.closeBrowser(sessionId)
-      } catch (err) {
-        console.error('[browserStore.close] API failed:', err)
-      }
+    const { webviewRef } = get()
+    if (webviewRef) {
+      // 清除 webview 引用
+      set({ webviewRef: null })
     }
-
     set(initialState)
   },
 
@@ -153,11 +114,29 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
 
     set({ isActing: true, error: null })
 
+    // 优先使用 webview 直接导航
+    if (state.webviewRef) {
+      try {
+        state.webviewRef.loadURL(normalizedUrl)
+        // URL 更新由 webview 的 did-navigate 事件处理
+        const newHistory = [...state.history.slice(0, state.historyIndex + 1), normalizedUrl]
+        set({
+          history: newHistory,
+          historyIndex: newHistory.length - 1,
+        })
+        return
+      } catch (err) {
+        console.error('[browserStore.navigate] webview loadURL failed:', err)
+      }
+    }
+
+    // 降级：使用 CLI API
     const connected = useConnectionStore.getState().connected
     const sessionId = useSessionStore.getState().activeSessionId
 
     if (connected && sessionId) {
       try {
+        const { kiloApi } = await import('@/services/kiloClient')
         const result = await kiloApi.browserAction(sessionId, {
           type: 'navigate',
           url: normalizedUrl,
@@ -182,19 +161,11 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
       }
     }
 
-    // 模拟模式
-    await new Promise((r) => setTimeout(r, 800))
-    const mockPage = MOCK_PAGES[normalizedUrl] || {
-      title: normalizedUrl.replace(/^https?:\/\//, '').split('/')[0],
-      tree: `[document] ${normalizedUrl}\n  [heading "${normalizedUrl}"]\n  [paragraph "页面内容加载中..."]`,
-      screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    }
+    // 最终降级：只更新 URL 状态
     const newHistory = [...state.history.slice(0, state.historyIndex + 1), normalizedUrl]
     set({
       currentUrl: normalizedUrl,
-      pageTitle: mockPage.title,
-      accessibilityTree: mockPage.tree,
-      screenshot: mockPage.screenshot,
+      pageTitle: normalizedUrl.replace(/^https?:\/\//, '').split('/')[0],
       history: newHistory,
       historyIndex: newHistory.length - 1,
       isActing: false,
@@ -202,29 +173,45 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
   },
 
   goBack: async () => {
-    const { historyIndex, history } = get()
+    const { historyIndex, history, webviewRef } = get()
     if (historyIndex <= 0) return
 
     const prevUrl = history[historyIndex - 1]
     set({ historyIndex: historyIndex - 1 })
-    await get().navigate(prevUrl)
-    // 恢复 historyIndex（navigate 会推入新记录，但 goBack 应该只是移动指针）
-    set({ historyIndex: historyIndex - 1 })
+
+    if (webviewRef && webviewRef.canGoBack()) {
+      webviewRef.goBack()
+    } else {
+      await get().navigate(prevUrl)
+      set({ historyIndex: historyIndex - 1 })
+    }
   },
 
   goForward: async () => {
-    const { historyIndex, history } = get()
+    const { historyIndex, history, webviewRef } = get()
     if (historyIndex >= history.length - 1) return
 
     const nextUrl = history[historyIndex + 1]
     set({ historyIndex: historyIndex + 1 })
-    await get().navigate(nextUrl)
-    set({ historyIndex: historyIndex + 1 })
+
+    if (webviewRef && webviewRef.canGoForward()) {
+      webviewRef.goForward()
+    } else {
+      await get().navigate(nextUrl)
+      set({ historyIndex: historyIndex + 1 })
+    }
   },
 
   reload: async () => {
-    const { currentUrl } = get()
+    const { currentUrl, webviewRef } = get()
     if (!currentUrl) return
+
+    if (webviewRef) {
+      set({ isActing: true })
+      webviewRef.reload()
+      return
+    }
+
     await get().navigate(currentUrl)
   },
 
@@ -249,36 +236,68 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
   },
 
   evaluate: async (expression: string) => {
+    const { webviewRef } = get()
+
+    // 优先使用 webview 执行 JS
+    if (webviewRef) {
+      try {
+        return await webviewRef.executeJavaScript(expression)
+      } catch (err) {
+        console.error('[browserStore.evaluate] webview failed:', err)
+        return undefined
+      }
+    }
+
+    // 降级：使用 CLI API
     const connected = useConnectionStore.getState().connected
     const sessionId = useSessionStore.getState().activeSessionId
 
     if (connected && sessionId) {
       try {
+        const { kiloApi } = await import('@/services/kiloClient')
         const result = await kiloApi.browserAction(sessionId, {
           type: 'evaluate',
           expression,
         })
         return result.result
       } catch (err) {
-        console.error('[browserStore.evaluate] Failed:', err)
+        console.error('[browserStore.evaluate] API failed:', err)
         return undefined
       }
     }
 
-    // 模拟模式
-    return `// 执行结果: ${expression}`
+    return undefined
   },
 
   takeScreenshot: async () => {
-    const connected = useConnectionStore.getState().connected
-    const sessionId = useSessionStore.getState().activeSessionId
+    const { webviewRef } = get()
     const state = get()
     if (!state.launched) return
 
     set({ isActing: true })
 
+    // 优先使用 webview 截图
+    if (webviewRef) {
+      try {
+        const image = await webviewRef.capturePage()
+        const dataUrl = image.toDataURL()
+        set({
+          screenshot: dataUrl,
+          isActing: false,
+        })
+        return
+      } catch (err) {
+        console.error('[browserStore.takeScreenshot] webview capturePage failed:', err)
+      }
+    }
+
+    // 降级：使用 CLI API
+    const connected = useConnectionStore.getState().connected
+    const sessionId = useSessionStore.getState().activeSessionId
+
     if (connected && sessionId) {
       try {
+        const { kiloApi } = await import('@/services/kiloClient')
         const snapshot = await kiloApi.browserSnapshot(sessionId, true)
         set({
           screenshot: snapshot.screenshot || null,
@@ -286,28 +305,63 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
         })
         return
       } catch (err) {
-        console.error('[browserStore.takeScreenshot] Failed:', err)
+        console.error('[browserStore.takeScreenshot] API failed:', err)
       }
     }
 
-    // 模拟截图
-    await new Promise((r) => setTimeout(r, 300))
-    set({
-      screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      isActing: false,
-    })
+    set({ isActing: false })
   },
 
   getSnapshot: async () => {
-    const connected = useConnectionStore.getState().connected
-    const sessionId = useSessionStore.getState().activeSessionId
+    const { webviewRef } = get()
     const state = get()
     if (!state.launched) return
 
     set({ isActing: true })
 
+    // 优先使用 webview 获取 DOM 快照
+    if (webviewRef) {
+      try {
+        const tree = await webviewRef.executeJavaScript(`
+          (function getA11yTree(el, indent) {
+            indent = indent || 0;
+            const tag = el.tagName?.toLowerCase() || '#text';
+            const role = el.getAttribute?.('role') || '';
+            const aria = el.getAttribute?.('aria-label') || '';
+            const text = (el.textContent || '').trim().slice(0, 50);
+            let line = '  '.repeat(indent) + '[' + tag;
+            if (role) line += ' role=' + role;
+            if (aria) line += ' aria-label=' + aria;
+            if (text && el.children?.length === 0) line += ' "' + text + '"';
+            line += ']';
+            let result = line + '\\n';
+            if (el.children) {
+              for (const child of el.children) {
+                result += getA11yTree(child, indent + 1);
+              }
+            }
+            return result;
+          })(document.body)
+        `)
+        set({
+          accessibilityTree: tree,
+          currentUrl: webviewRef.getURL(),
+          pageTitle: webviewRef.getTitle(),
+          isActing: false,
+        })
+        return
+      } catch (err) {
+        console.error('[browserStore.getSnapshot] webview failed:', err)
+      }
+    }
+
+    // 降级：使用 CLI API
+    const connected = useConnectionStore.getState().connected
+    const sessionId = useSessionStore.getState().activeSessionId
+
     if (connected && sessionId) {
       try {
+        const { kiloApi } = await import('@/services/kiloClient')
         const snapshot = await kiloApi.browserSnapshot(sessionId, false)
         set({
           currentUrl: snapshot.url,
@@ -317,7 +371,7 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
         })
         return
       } catch (err) {
-        console.error('[browserStore.getSnapshot] Failed:', err)
+        console.error('[browserStore.getSnapshot] API failed:', err)
       }
     }
 
@@ -330,11 +384,71 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
 
     set({ isActing: true, error: null })
 
+    // 优先使用 webview 执行操作
+    if (state.webviewRef) {
+      try {
+        const escapedSelector = action.selector?.replace(/'/g, "\\'") || ''
+
+        switch (action.type) {
+          case 'click':
+            await state.webviewRef.executeJavaScript(
+              `document.querySelector('${escapedSelector}')?.click()`
+            )
+            break
+          case 'type':
+            await state.webviewRef.executeJavaScript(
+              `const el = document.querySelector('${escapedSelector}'); if(el) { el.focus(); el.value = '${action.text?.replace(/'/g, "\\'")}'; el.dispatchEvent(new Event('input', {bubbles:true})); }`
+            )
+            break
+          case 'hover':
+            await state.webviewRef.executeJavaScript(
+              `const el = document.querySelector('${escapedSelector}'); if(el) { el.dispatchEvent(new MouseEvent('mouseover', {bubbles:true})); }`
+            )
+            break
+          case 'scroll': {
+            const amount = action.scrollDirection === 'up' ? '-300'
+              : action.scrollDirection === 'down' ? '300'
+              : '0'
+            await state.webviewRef.executeJavaScript(
+              `window.scrollBy({ top: ${amount}, behavior: 'smooth' })`
+            )
+            break
+          }
+          case 'navigate':
+            if (action.url) {
+              state.webviewRef.loadURL(action.url)
+            }
+            break
+          case 'goBack':
+            if (state.webviewRef.canGoBack()) state.webviewRef.goBack()
+            break
+          case 'goForward':
+            if (state.webviewRef.canGoForward()) state.webviewRef.goForward()
+            break
+          case 'reload':
+            state.webviewRef.reload()
+            break
+          case 'evaluate':
+            if (action.expression) {
+              await state.webviewRef.executeJavaScript(action.expression)
+            }
+            break
+        }
+        set({ isActing: false })
+        return
+      } catch (err) {
+        console.error('[browserStore.executeAction] webview failed:', err)
+        // 不立即降级，因为某些操作可能需要页面完全加载
+      }
+    }
+
+    // 降级：使用 CLI API
     const connected = useConnectionStore.getState().connected
     const sessionId = useSessionStore.getState().activeSessionId
 
     if (connected && sessionId) {
       try {
+        const { kiloApi } = await import('@/services/kiloClient')
         const result = await kiloApi.browserAction(sessionId, action)
         if (result.success) {
           if (result.snapshot) {
@@ -355,12 +469,12 @@ export const useBrowserStore = create<BrowserStoreState>()((set, get) => ({
       }
     }
 
-    // 模拟模式：短暂延迟后更新快照
+    // 最终降级：短暂延迟后更新快照
     await new Promise((r) => setTimeout(r, 400))
     set({ isActing: false })
   },
 
   clearError: () => set({ error: null }),
 
-  reset: () => set(initialState),
+  reset: () => set({ ...initialState, webviewRef: null }),
 }))

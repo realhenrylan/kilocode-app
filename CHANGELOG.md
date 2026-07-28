@@ -4,6 +4,82 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0-dev.4] - 2026-07-27
+
+### Fix — 浏览器 webview 0x0 尺寸 + 终端竞态条件导致无法连接
+
+**浏览器：修复 webview 布局和重新加载问题**
+- `BrowserPanel.tsx`：webview 从 `className="h-full w-full"` 改为 `position: absolute` + `width/height: 100%`，修复 flex 布局下尺寸为 0x0 的问题
+- `BrowserPanel.tsx`：添加 `initialUrl` 状态（useState 初始值），webview src 绑定 `initialUrl` 而非 `currentUrl`，避免 React 重渲染时 webview 重新加载
+- `BrowserPanel.tsx`：`handleNavigate` 在调用 `loadURL` 前先在 store 中设置 `currentUrl`，保证状态同步
+
+**终端：修复 xterm 初始化竞态条件**
+- 根因：Effect 1 异步创建 xterm（`await import`），Effect 2 在 xterm 就绪前就运行并 return，导致终端永不连接
+- `TerminalPanel.tsx`：添加 `terminalReady` 状态，Effect 1 完成后设为 `true`，Effect 2 依赖 `[connected, port, terminalReady]`
+- `TerminalPanel.tsx`：Effect 2 cleanup 时 kill 旧 PTY 并生成新 ID，避免 "PTY instance already exists" 错误
+- `pty-manager.ts`：`create()` 对已存在的同 ID 实例先 kill 再重建，从 throw 改为优雅处理
+- `ipc-handlers.ts`：PTY 事件监听器从 `pty:create` handler 内移至外层，只注册一次，避免重复监听和内存泄漏
+
+**面板：修复 tab 切换时组件被卸载销毁**
+- 根因：RightPanel 用 `{condition && <Component />}` 渲染，切换 tab 时组件卸载，xterm/webview 实例被 dispose
+- `RightPanel.tsx`：所有面板始终挂载，通过 CSS `hidden` 类控制显隐，保留运行时状态
+
+**配置：修复 providers 非数组导致 React 崩溃**
+- `configStore.ts`：`loadConfig` 和 `loadProviders` 添加 `Array.isArray()` 防御性检查，确保 providers/models 始终为数组
+- `Composer.tsx`：`providerNames` 计算时对 providers 添加 `Array.isArray()` 守卫，避免 "providers is not iterable" 异常
+
+## [0.8.0-dev.3] - 2026-07-27
+
+### Fix — 浏览器显示 broken image + 终端无法使用
+
+**浏览器：替换截图模式为真实嵌入浏览器**
+- 将 `<img src={screenshot}>` 截图预览替换为 `<webview>` 标签，嵌入可交互的真实网页
+- webview 运行在独立进程中，不受 X-Frame-Options 限制，所有网站均可正常加载
+- 重写 `BrowserPanel.tsx`：导航/后退/前进/刷新/截图/JS执行均通过 webview API 实现
+- 重写 `browserStore.ts`：优先使用 webview 直接操作，保留 kiloApi CLI 后端作为降级方案
+- `electron/main.ts`：在 `webPreferences` 中启用 `webviewTag: true`
+- `index.html`：CSP 添加 `img-src 'self' data: blob: https: http:` 和 `frame-src 'self' https: http:`
+
+**终端：修复 node-pty 原生模块路径解析失败**
+- 根因：`vite-plugin-electron` 将 node-pty 内联打包，导致运行时 `.node` 二进制文件路径解析失败
+- `vite.config.ts`：在 electron 入口配置中添加 `rollupOptions.external: ['node-pty']`，避免内联打包
+- `electron/ipc-handlers.ts`：新增 `pty:isAvailable` IPC handler（始终注册），让渲染进程可检测 PTY 可用性
+- `electron/preload.ts`：新增 `pty.isAvailable()` API
+- `src/types/kilo.d.ts`：添加 `isAvailable` 类型声明
+- `TerminalPanel.tsx`：连接策略判断改为先异步调用 `pty.isAvailable()` 检测真实可用性，再选择策略
+- `electron-builder.yml`：files 中添加 `node_modules/node-pty/**/*`，确保打包后原生模块可被加载
+- node-pty 1.1.0 的 N-API 预编译二进制不需要 Visual Studio Build Tools
+
+## [0.8.0-dev.2] - 2026-07-27
+
+### Fix — 终端功能完全不可用（5 层问题叠加修复）
+
+**P0-1: xterm CSS 未引入**
+- `TerminalPanel.tsx` 添加 `import '@xterm/xterm/css/xterm.css'`，修复终端无基础样式导致渲染空白
+
+**P0-2: IPC 快捷键事件无人监听**
+- `App.tsx` 添加 `useEffect` 注册 4 个 `action:` IPC 事件监听器
+- Ctrl+J 切换终端面板、Ctrl+B 切换侧边栏、Ctrl+N 新建会话、Ctrl+, 打开设置
+- 修复主进程发送快捷键事件但渲染进程无响应的问题
+
+**P1-1: 集成本地 node-pty**
+- 安装 `node-pty` 依赖，提供真实 shell 能力
+- 新增 `electron/pty-manager.ts`：PTY 进程管理器，管理伪终端实例生命周期
+- 修改 `electron/ipc-handlers.ts`：新增 PTY 相关 IPC 通道（pty:create/write/resize/kill）
+- 修改 `electron/main.ts`：初始化 PtyManager，退出时清理 PTY 进程
+- 修改 `electron/preload.ts`：暴露 PTY API 给渲染进程
+- 更新 `src/types/kilo.d.ts`：添加 PTY 类型声明
+- 修改 `electron-builder.yml`：添加 `npmRebuild: true` 和 `buildDependenciesFromSource: true` 确保原生模块正确打包
+
+**P1-2: 重构终端组件生命周期**
+- 终端实例与连接管理分离为两个独立 `useEffect`，重连不丢失历史
+- 三级连接策略：本地 PTY（优先）→ CLI WebSocket PTY（降级）→ 本地模拟模式（最终降级）
+- `terminal.onData`/`terminal.onResize` 返回的 `IDisposable` 在 cleanup 中正确释放，修复监听器泄漏
+
+**P2-1: 容器尺寸适配优化**
+- 用 `ResizeObserver` 替代 `window.resize`，可感知容器自身尺寸变化
+- `RightPanel.tsx` 抽屉展开后触发 `terminal:fit` 自定义事件，确保 xterm 正确填充容器
+
 ## [0.8.0-dev.1] - 2026-07-26
 
 ### Fix — 修复 Windows 系统托盘图标缺失

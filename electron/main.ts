@@ -3,6 +3,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { KiloProcess } from './kilo-process'
+import { PtyManager } from './pty-manager'
 import { registerIpcHandlers } from './ipc-handlers'
 import { createTray, destroyTray } from './tray'
 import { registerGlobalShortcuts, registerAppShortcuts, unregisterAllShortcuts } from './shortcuts'
@@ -20,6 +21,9 @@ let systemTray: Tray | null = null
 
 /** KiloCode CLI 进程管理器 */
 let kiloProcess: KiloProcess | null = null
+
+/** PTY 终端管理器 */
+let ptyManager: PtyManager | null = null
 
 function createWindow(): void {
   try {
@@ -41,6 +45,8 @@ function createWindow(): void {
         sandbox: false,
         contextIsolation: true,
         nodeIntegration: false,
+        // 启用 <webview> 标签，用于内嵌浏览器面板
+        webviewTag: true,
       },
     })
 
@@ -125,7 +131,8 @@ app.whenReady().then(() => {
   })
 
   // 注册 IPC 通信处理
-  registerIpcHandlers(kiloProcess)
+  ptyManager = new PtyManager()
+  registerIpcHandlers(kiloProcess, ptyManager)
 
   // 创建主窗口
   createWindow()
@@ -162,6 +169,7 @@ app.on('window-all-closed', () => {
 // 应用退出前清理
 app.on('before-quit', () => {
   ;(app as any).isQuitting = true
+  ptyManager?.dispose()
   kiloProcess?.stop()
   destroyTray()
   unregisterAllShortcuts()

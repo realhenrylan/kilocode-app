@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow, dialog } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import type { KiloProcess } from './kilo-process'
+import type { PtyManager } from './pty-manager'
 
 /**
  * 注册所有 IPC 通信处理器
@@ -9,8 +10,9 @@ import type { KiloProcess } from './kilo-process'
  * - KiloCode CLI 状态查询与控制
  * - 窗口控制（最小化/最大化/关闭）
  * - 文件系统操作
+ * - PTY 终端操作
  */
-export function registerIpcHandlers(kiloProcess: KiloProcess | null): void {
+export function registerIpcHandlers(kiloProcess: KiloProcess | null, ptyManager: PtyManager): void {
   // ===== KiloCode CLI 相关 =====
 
   ipcMain.handle('kilo:getPort', () => {
@@ -79,4 +81,39 @@ export function registerIpcHandlers(kiloProcess: KiloProcess | null): void {
   ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
     return writeFile(filePath, content, 'utf-8')
   })
+
+  // ===== PTY 终端相关 =====
+  // pty:isAvailable 始终注册，让渲染进程可以正确检测 PTY 可用性
+  ipcMain.handle('pty:isAvailable', () => ptyManager.available)
+
+  // 仅在 node-pty 原生模块可用时注册 PTY IPC 通道
+  if (ptyManager.available) {
+    // PTY 输出推送到所有窗口（监听器只注册一次，避免重复）
+    ptyManager.on('data', (ptyId: string, data: string) => {
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('pty:data', ptyId, data)
+      })
+    })
+    ptyManager.on('exit', (ptyId: string, exitCode: number) => {
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('pty:exit', ptyId, exitCode)
+      })
+    })
+
+    ipcMain.handle('pty:create', (event, { id, cols, rows, cwd }) => {
+      ptyManager.create(id, cols, rows, cwd)
+    })
+
+    ipcMain.on('pty:write', (_, { id, data }) => {
+      ptyManager.write(id, data)
+    })
+
+    ipcMain.on('pty:resize', (_, { id, cols, rows }) => {
+      ptyManager.resize(id, cols, rows)
+    })
+
+    ipcMain.on('pty:kill', (_, { id }) => {
+      ptyManager.kill(id)
+    })
+  }
 }
