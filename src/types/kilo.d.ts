@@ -368,6 +368,16 @@ declare global {
         readFile: (filePath: string) => Promise<string>
         writeFile: (filePath: string, content: string) => Promise<void>
       }
+      pty: {
+        /** 检查 PTY（node-pty）是否可用 */
+        isAvailable: () => Promise<boolean>
+        create: (id: string, cols: number, rows: number, cwd?: string) => Promise<void>
+        write: (id: string, data: string) => void
+        resize: (id: string, cols: number, rows: number) => void
+        kill: (id: string) => void
+        onData: (callback: (id: string, data: string) => void) => void
+        onExit: (callback: (id: string, exitCode: number) => void) => void
+      }
       on: (channel: string, callback: (...args: unknown[]) => void) => void
       off: (channel: string, callback: (...args: unknown[]) => void) => void
     }

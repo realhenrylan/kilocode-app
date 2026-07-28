@@ -318,7 +318,8 @@ export function Composer() {
   /** 提供商显示名称映射 */
   const providerNames = (() => {
     const names: Record<string, string> = {}
-    for (const p of providers) {
+    // 防御性检查：providers 可能被 API 设置为非数组类型
+    for (const p of Array.isArray(providers) ? providers : []) {
       names[p.id] = p.name
     }
     return names

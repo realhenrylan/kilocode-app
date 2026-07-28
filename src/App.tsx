@@ -7,6 +7,7 @@ import { useConfigStore } from '@/stores/configStore'
 import { useMemoryStore } from '@/stores/memoryStore'
 import { useRulesStore } from '@/stores/rulesStore'
 import { useSessionStore } from '@/stores/sessionStore'
+import { useUiStore } from '@/stores/uiStore'
 import { useToastStore } from '@/stores/toastStore'
 import { useEffect } from 'react'
 
@@ -48,6 +49,51 @@ function App() {
         message: '上次会话中断，已恢复到最近状态',
       })
       setWasInterrupted(false)
+    }
+  }, [])
+
+  // 注册 IPC 快捷键事件监听
+  // 主进程通过 action:xxx 事件发送快捷键指令，渲染进程需注册监听器响应
+  useEffect(() => {
+    const api = window.api
+    if (!api) return
+
+    // Ctrl+J: 切换终端面板
+    const handleToggleTerminal = () => {
+      const { rightPanelVisible, rightPanelTab, setRightPanelTab, toggleRightPanel } =
+        useUiStore.getState()
+      if (rightPanelVisible && rightPanelTab === 'terminal') {
+        toggleRightPanel()
+      } else {
+        setRightPanelTab('terminal')
+      }
+    }
+
+    // Ctrl+B: 切换侧边栏
+    const handleToggleSidebar = () => {
+      useUiStore.getState().toggleSidebar()
+    }
+
+    // Ctrl+N: 新建会话
+    const handleNewSession = () => {
+      useSessionStore.getState().createNewSession()
+    }
+
+    // Ctrl+,: 打开设置
+    const handleOpenSettings = () => {
+      useUiStore.getState().setSettingsOpen(true)
+    }
+
+    api.on('action:toggleTerminal', handleToggleTerminal)
+    api.on('action:toggleSidebar', handleToggleSidebar)
+    api.on('action:newSession', handleNewSession)
+    api.on('action:openSettings', handleOpenSettings)
+
+    return () => {
+      api.off('action:toggleTerminal', handleToggleTerminal)
+      api.off('action:toggleSidebar', handleToggleSidebar)
+      api.off('action:newSession', handleNewSession)
+      api.off('action:openSettings', handleOpenSettings)
     }
   }, [])
 
