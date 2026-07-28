@@ -12,8 +12,13 @@ dist
 dist-ssr
 dist-electron
 release/
+release-current/
 release-pack/
 *.local
+
+# Temp / scratch files
+screen.png
+code.html
 
 # Editor directories and files
 .vscode/*
