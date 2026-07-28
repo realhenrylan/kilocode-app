@@ -94,10 +94,10 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
       const config = await kiloApi.getConfig()
       set({
         config,
-        models: config.providers?.flatMap((p) => p.models) || [],
-        providers: config.providers || [],
-        mcpServers: config.mcpServers || [],
-        customModes: config.customModes || [],
+        models: Array.isArray(config.providers?.flatMap((p) => p.models)) ? config.providers.flatMap((p) => p.models) : [],
+        providers: Array.isArray(config.providers) ? config.providers : [],
+        mcpServers: Array.isArray(config.mcpServers) ? config.mcpServers : [],
+        customModes: Array.isArray(config.customModes) ? config.customModes : [],
         loaded: true,
       })
     } catch (err) {
@@ -153,7 +153,8 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
     if (connected) {
       try {
         const providers = await kiloApi.listProviders()
-        set({ providers })
+        // 防御性检查：确保 providers 始终为数组
+        set({ providers: Array.isArray(providers) ? providers : [] })
         return
       } catch (err) {
         console.error('[loadProviders] API failed, using mock data:', err)

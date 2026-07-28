@@ -1,10 +1,10 @@
 {
   "name": "kilocode-app",
   "private": true,
-  "version": "0.8.0-dev",
+  "version": "0.8.0-dev.4",
   "description": "KiloCode Windows Desktop Application - AI Coding Agent",
   "type": "module",
-  "main": "dist-electron/main/index.js",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -56,5 +56,8 @@
     "vite": "^8.1.1",
     "vite-plugin-electron": "^1.1.0",
     "vite-plugin-electron-renderer": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.1.0"
   }
 }

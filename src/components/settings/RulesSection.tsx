@@ -6,8 +6,6 @@ import {
   Plus,
   Trash2,
   Pencil,
-  Check,
-  X,
   Globe,
   FolderTree,
   Building2,
@@ -64,7 +62,7 @@ export function RulesSection() {
   const enabledCount = rules.filter((r) => r.enabled).length
 
   return (
-    <div>
+    <div className="kc-settings-complex-section">
       <h3 className="mb-4 text-sm font-semibold">规则系统</h3>
       <p className="mb-4 text-xs text-[var(--text-tertiary)]">
         管理 AI 行为规则文件。规则以 Markdown 格式编写，作为 AI 的行为指导。
@@ -135,7 +133,7 @@ export function RulesSection() {
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          className="mt-3 flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--text-tertiary)] transition-colors hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
+          className="kc-settings-secondary-action"
         >
           <Plus size={12} />
           添加规则
@@ -177,10 +175,7 @@ function RuleCard({
   }
 
   return (
-    <div className={cn(
-      'rounded-lg border p-3 transition-colors',
-      !rule.enabled && 'opacity-60'
-    )}>
+    <div className={cn('kc-settings-list-card kc-settings-rule-card', !rule.enabled && 'is-muted')}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* 启用/禁用切换 */}
@@ -260,7 +255,7 @@ function RuleForm({
   const canSubmit = name.trim().length > 0 && content.trim().length > 0
 
   return (
-    <div className="mt-2 rounded-lg border border-[var(--brand-primary)] bg-[var(--bg-tertiary)] p-3">
+    <div className="kc-settings-form-card kc-settings-complex-form">
       <div className="space-y-3">
         {/* 规则名称 */}
         <div>

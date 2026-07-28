@@ -8,7 +8,6 @@ import {
   Trash2,
   Pencil,
   Check,
-  X,
   Bot,
   Building2,
   GraduationCap,
@@ -66,7 +65,7 @@ export function CustomModesSection() {
   const [showAddForm, setShowAddForm] = useState(false)
 
   return (
-    <div>
+    <div className="kc-settings-complex-section">
       <h3 className="mb-4 text-sm font-semibold">自定义模式</h3>
       <p className="mb-4 text-xs text-[var(--text-tertiary)]">
         创建自定义 Agent 模式，配置专属系统提示词和可用工具。自定义模式会出现在模式选择器中。
@@ -108,7 +107,7 @@ export function CustomModesSection() {
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          className="mt-3 flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--text-tertiary)] transition-colors hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
+          className="kc-settings-secondary-action"
         >
           <Plus size={12} />
           添加自定义模式
@@ -151,12 +150,7 @@ function ModeCard({
   }
 
   return (
-    <div className={cn(
-      'rounded-lg border p-3 transition-colors',
-      isActive
-        ? 'border-[var(--brand-primary)] bg-[var(--brand-muted)]'
-        : 'border-[var(--border)]'
-    )}>
+    <div className={cn('kc-settings-list-card kc-settings-mode-card', isActive && 'is-active')}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className={cn(
@@ -261,7 +255,7 @@ function ModeForm({
   const canSubmit = name.trim().length > 0 && systemPrompt.trim().length > 0
 
   return (
-    <div className="mt-2 rounded-lg border border-[var(--brand-primary)] bg-[var(--bg-tertiary)] p-3">
+    <div className="kc-settings-form-card kc-settings-complex-form">
       <div className="space-y-3">
         {/* 模式名称 */}
         <div>
