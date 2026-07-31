@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0-dev.5] - 2026-07-31
+
+### Fix — kilo 孤儿进程导致端口冲突黑屏 + GPU 缓存权限错误
+
+**进程管理：修复 kilo.exe 孤儿进程导致端口冲突**
+- 根因：Electron 异常退出时 kilo serve 子进程不会被终止，下次启动时端口 4096 被占用，CLI 启动失败回退 mock 模式导致黑屏
+- `kilo-process.ts`：新增 `cleanupStaleProcess()` 方法，启动前检测端口占用并杀死旧 kilo.exe
+- `kilo-process.ts`：改进 `stop()` 为 Windows 兼容，使用 `taskkill /f /t /pid` 杀死进程树（原 SIGTERM 在 Windows 上等同于 TerminateProcess 且无法杀死子进程树）
+- `kilo-process.ts`：记录 `_pid` 字段，stop 时通过 PID 精准终止而非依赖 ChildProcess 引用
+- `main.ts`：添加 `app.requestSingleInstanceLock()` 单实例锁，防止多实例同时运行导致端口和缓存冲突
+
+**缓存：修复 GPU 磁盘缓存权限错误**
+- 根因：Electron 未配置缓存路径，默认路径权限不足或多实例竞争导致 "Unable to move the cache: 拒绝访问"
+- `main.ts`：显式设置 `app.setPath('cache', ...)` 到 userData/Cache 目录
+- `main.ts`：添加 `--disable-gpu-shader-disk-cache` 命令行开关，彻底消除 GPU Cache Creation failed 错误
+
+**构建：修复 index.html 被构建产物污染**
+- 根因：`vite build` 将 `<script src="/src/main.tsx">` 替换为构建产物引用，且 CSP 中 `img-src`/`frame-src` 被删除
+- 恢复 `index.html` 到 Git 原始版本，确保 CSP 完整和 Vite 入口正确
+
 ## [0.8.0-dev.4] - 2026-07-27
 
 ### Fix — 浏览器 webview 0x0 尺寸 + 终端竞态条件导致无法连接

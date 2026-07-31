@@ -15,6 +15,31 @@ import { registerGlobalShortcuts, registerAppShortcuts, unregisterAllShortcuts }
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// ===== 单实例锁 =====
+// 防止多个 KiloCode 实例同时运行，避免端口冲突和缓存文件锁竞争
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  // 第二个实例尝试启动时，聚焦已有窗口
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
+
+// ===== 缓存路径配置 =====
+// 显式设置缓存目录到 userData/Cache，确保写入权限
+// 解决 Windows 上 "Unable to move the cache: 拒绝访问" 错误
+app.setPath('cache', join(app.getPath('userData'), 'Cache'))
+
+// 禁用 GPU shader 磁盘缓存，消除 GPU Cache Creation failed 错误
+// 对桌面应用性能影响极小（shader 缓存仅加速首次编译，后续启动差异可忽略）
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
+
 /** 主窗口实例 */
 let mainWindow: BrowserWindow | null = null
 let systemTray: Tray | null = null
